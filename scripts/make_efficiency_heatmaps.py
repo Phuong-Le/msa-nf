@@ -170,11 +170,11 @@ if __name__ == '__main__':
                       help="set the dataset name ('SIM' by default)")
     parser.add_option("-c", "--context", dest="context", default=96, type='int',
                       help="set SBS context (96, 192, 1536)")
-    parser.add_option("-m", "--method", dest="method", default='',
-                      help="set the method name (e.g. 'NNLS', 'SigProfiler')")
+    parser.add_option("-m", "--method", dest="method", default='NNLS',
+                      help="set the method name (e.g. 'NNLS')")
     parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
                       help="set path to input reconstructed weights tables")
-    parser.add_option("-I", "--input_truth_path", dest="input_truth_path", default='simulations/',
+    parser.add_option("-I", "--input_truth_path", dest="input_truth_path", default='input_mutation_tables/SIM/',
                       help="set path to input truth (simulated) weights tables")
     parser.add_option("-o", "--output_path", dest="output_path", default='efficiency_plots/',
                       help="set path to save output plots")

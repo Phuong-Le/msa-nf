@@ -49,9 +49,9 @@ params.mutation_types = ['SBS']
 params.input_tables = "$PWD/input_mutation_tables"
 params.signature_tables = "$PWD/signature_tables"
 params.SBS_context = 192
-params.optimised = false
+params.optimised = true
 params.perform_bootstrapping = true
-params.number_of_bootstrapped_samples = 10
+params.number_of_bootstrapped_samples = 1000
 params.NNLS_output_path = "$PWD/output_tables"
 params.plots_output_path = "$PWD/plots"
 
@@ -72,7 +72,7 @@ process run_NNLS_normal {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -n 2 -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+  python $PWD/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   """
 }
@@ -96,7 +96,7 @@ process run_NNLS_bootstrapping {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -n 2 -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+  python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   mv ${dataset}/output_${mutation_type}_mutations_table.csv ${dataset}/output_${mutation_type}_${i}_mutations_table.csv
   mv ${dataset}/output_${mutation_type}_weights_table.csv ${dataset}/output_${mutation_type}_${i}_weights_table.csv
