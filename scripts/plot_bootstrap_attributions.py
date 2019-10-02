@@ -152,9 +152,9 @@ if __name__ == '__main__':
     central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_mutations_table.csv' % mutation_type, index_col=0)
     central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_weights_table.csv' % mutation_type, index_col=0)
     central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_stat_info.csv' % mutation_type, index_col=0)
-    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/output_%s_i_mutations_table.csv' % mutation_type
-    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/output_%s_i_weights_table.csv' % mutation_type
-    bootstrap_stat_table_filename = input_attributions_folder + '/output_%s_i_stat_info.csv' % mutation_type
+    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/output_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type)
+    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/output_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type)
+    bootstrap_stat_table_filename = input_attributions_folder + '/output_%s_%s_i_stat_info.csv' % (dataset_name, mutation_type)
 
     if mutation_type=='SBS':
         if context==96:

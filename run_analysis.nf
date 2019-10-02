@@ -86,10 +86,9 @@ process run_NNLS_bootstrapping {
   each dataset from params.datasets
 
   output:
-  file("./${dataset}/output_${mutation_type}_${i}_mutations_table.csv")
-  file("./${dataset}/output_${mutation_type}_${i}_stat_info.csv")
-  file("./${dataset}/output_${mutation_type}_${i}_weights_table.csv")
-  set dataset, mutation_type, file("./${dataset}/output_${mutation_type}_${i}_weights_table.csv") into bootstrap_output
+  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output
 
   when:
   params.perform_bootstrapping
@@ -98,9 +97,9 @@ process run_NNLS_bootstrapping {
   """
   python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   -i ${params.input_tables} -s ${params.signature_tables} -o "./"
-  mv ${dataset}/output_${mutation_type}_mutations_table.csv ${dataset}/output_${mutation_type}_${i}_mutations_table.csv
-  mv ${dataset}/output_${mutation_type}_weights_table.csv ${dataset}/output_${mutation_type}_${i}_weights_table.csv
-  mv ${dataset}/output_${mutation_type}_stat_info.csv ${dataset}/output_${mutation_type}_${i}_stat_info.csv
+  mv ${dataset}/output_${mutation_type}_mutations_table.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_mutations_table.csv
+  mv ${dataset}/output_${mutation_type}_weights_table.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv
+  mv ${dataset}/output_${mutation_type}_stat_info.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_stat_info.csv
   """
 }
 
@@ -108,7 +107,8 @@ process plot_bootstrap_attributions {
   publishDir "${params.plots_output_path}"
 
   input:
-  set dataset, mutation_type, files from bootstrap_output
+  set dataset, mutation_type from attribution_for_bootstrap_plots
+  file bootstrap_weights from bootstrap_output.collect()
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
