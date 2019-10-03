@@ -1,6 +1,8 @@
-# Mutational Signature Analysis
+# Mutational Signature Attribution
 
 Mutational signature attribution analysis, including code used for optimisation study with simulated data.
+
+This analysis pipeline will likely move to nf-core soon, where it will become more standardised and user-friendly.
 
 ## Getting started
 
@@ -42,7 +44,7 @@ source activate MSA
 
 ### Simulating data
 
-* [input_mutation_tables/SIM](input_mutation_tables/SIM) folder contains a set produced with existing (PCAWG or COSMIC) signatures. [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function was used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](https://gitlab.com/s.senkin/MSA/blob/scripts/simulate_data.py#L9) dictionary in the script, containing Gaussian means and standard deviations for each signature.
+* [input_mutation_tables/SIM](input_mutation_tables/SIM) folder contains a set produced with existing (PCAWG or COSMIC) signatures. [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function was used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](https://gitlab.com/s.senkin/MSA/tree/scripts/simulate_data.py#L9) dictionary in the script, containing Gaussian means and standard deviations for each signature.
 * Note that the distributions are not strictly Gaussian since negative numbers of burdens are replaced by zeros
 * To reproduce the simulated set of samples with reshuffled *SBS1/5/22/40* PCAWG signatures, one can run the following script (without the *-r* option):
 ```
@@ -68,7 +70,7 @@ To run NNLS on simulated data:
 
 To run NNLS on your own $dataset, create your own $dataset_folder with mutation tables:
 ```
-./run_all_NNLS.sh -d $dataset -i $dataset_folder -s signatures_PCAWG
+./run_all_NNLS.sh -d $dataset -i $dataset_folder -s signature_tables
 ```
 
 To limit the running to the first **n** samples, use the *-n* option.
@@ -85,11 +87,13 @@ To change the context, use the *-c* flag (only relevant for SBS):
 python NNLS/run_NNLS.py -t SBS -c 192 -x
 ```
 
+Bootstrap option *-B* allows to run this script for a perturbed mutation table, using method specified with *--bootstrap_method* option (see more in the script).
+
 ## Similarity and attribution efficiency measurements
 
 ### Optimisation thresholds parameter space scan
 
-[Nextflow](https://www.nextflow.io/) scripts have been implemented to run the parameter space scan of the optimisation thresholds for NNLS routine. This can be run locally or on your favourite cluster.
+[Nextflow](https://www.nextflow.io/) script have been implemented to run the parameter space scan of the optimisation thresholds for NNLS routine. This can be run locally or on your favourite cluster.
 
 ```
 nextflow run run_NNLS_optimisation.nf
