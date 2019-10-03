@@ -79,13 +79,13 @@ To limit the running to the first **n** samples, use the *-n* option.
 To manually run NNLS (*-t* to set mutation type, *-x* flag for optimised method):
 
 ```
-python NNLS/run_NNLS.py -t SBS -x
+python scripts/run_NNLS.py -t SBS -x
 ```
 
 To change the context, use the *-c* flag (only relevant for SBS):
 
 ```
-python NNLS/run_NNLS.py -t SBS -c 192 -x
+python scripts/run_NNLS.py -t SBS -c 192 -x
 ```
 
 Bootstrap option *-B* allows to run this script for a perturbed mutation table, using method specified with *--bootstrap_method* option (see more in the script).
