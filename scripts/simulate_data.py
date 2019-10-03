@@ -83,7 +83,7 @@ if __name__ == '__main__':
                       help="set SBS context (96, 192)")
     parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
                       help="set path to signature tables")
-    parser.add_option("-o", "--output_path", dest="output_path", default='simulations/',
+    parser.add_option("-o", "--output_path", dest="output_path", default='input_mutation_tables/',
                       help="set path to save output simulatied mutation tables")
     parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     dataset_name = options.dataset_name
     context = options.context
     signature_tables_path = options.signature_tables_path
-    output_path = options.output_path
+    output_path = options.output_path + '/' + dataset_name
     number_of_samples = options.number_of_samples
     random_signatures = options.random_signatures
     number_of_random_sigs = options.number_of_random_sigs

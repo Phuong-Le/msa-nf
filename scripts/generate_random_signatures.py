@@ -73,9 +73,9 @@ if __name__ == '__main__':
                       help="set mutation type (SBS, DBS, ID)")
     parser.add_option("-c", "--context", dest="context", default=96, type='int',
                       help="set SBS context (96, 192, 1536)")
-    parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signatures_PCAWG/',
+    parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
                       help="set path to PCAWG signature tables (for reference)")
-    parser.add_option("-o", "--output_path", dest="output_path", default='signatures_random/',
+    parser.add_option("-o", "--output_path", dest="output_path", default='signature_tables/',
                       help="set path to save output simulated signatures")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
                       help="verbosity flag for debugging (lots of output)")
