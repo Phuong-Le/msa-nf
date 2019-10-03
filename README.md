@@ -42,19 +42,20 @@ source activate MSA
 
 ### Simulating data
 
-* [simulations](simulations) folder contains a set of 100 simulated samples for 96/192 contexts SBS, as well as dinucs and indels, where each sample contains contributions from **5** randomly selected signatures out of **100** Poisson-generated signatures. To reproduce (e.g. for 96-context SBS, 100 signatures and samples), run:
+* [input_mutation_tables/SIM](input_mutation_tables/SIM) folder contains a set produced with existing (PCAWG or COSMIC) signatures. [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function was used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](https://gitlab.com/s.senkin/MSA/blob/scripts/simulate_data.py#L9) dictionary in the script, containing Gaussian means and standard deviations for each signature.
+* Note that the distributions are not strictly Gaussian since negative numbers of burdens are replaced by zeros
+* To reproduce the simulated set of samples with reshuffled *SBS1/5/22/40* PCAWG signatures, one can run the following script (without the *-r* option):
 ```
-python simulation_code/generate_random_signatures.py -t SBS -c 96 -n 100
-python simulation_code/simulate_data.py -r -t SBS -c 96 -n 100
+python simulation_code/simulate_data.py -t SBS -c 96 -n 100 -s signature_tables
+```
+
+* [input_mutation_tables/SIMrand](input_mutation_tables/SIMrand) folder contains a set of 100 simulated samples for 96/192 contexts SBS, as well as dinucs and indels, where each sample contains contributions from **5** randomly selected signatures out of **100** Poisson-generated signatures. To reproduce (e.g. for 96-context SBS, 100 signatures and samples), run:
+```
+python scripts/generate_random_signatures.py -t SBS -c 96 -n 100
+python scripts/simulate_data.py -r -t SBS -c 96 -n 100 -d SIMrand
 ```
 In both scripts, a normal distribution can be used to generate white noise using *-z* option, with a Gaussian centred around **0** for each category of mutations, with standard deviation set by *-Z* option (**2** by default). Additional flags can be viewed in the code or using *-h* option in each script.
 
-* Alternatively, [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function can be used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](https://gitlab.com/s.senkin/signature_attribution_algorithms/blob/simulations/simulate_PCAWG_signatures.py#L8) dictionary in the script, containing Gaussian means and standard deviations for each signature.
-* Note that the distributions are not strictly Gaussian since negative numbers of burdens are replaced by zeros
-* To reproduce the simulated set of samples with reshuffled *SBS1/5/22/40* PCAWG signatures, one can run the above-mentioned script without the *-r* option:
-```
-python simulation_code/simulate_data.py -t SBS -c 96 -n 100 -s signatures_PCAWG
-```
 
 The file format produced is the same as that of the existing PCAWG dataset.
 
