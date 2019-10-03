@@ -48,6 +48,7 @@ params.mutation_types = ['SBS']
 params.input_tables = "$PWD/input_mutation_tables"
 params.input_signatures = "$PWD/signature_tables"
 params.NNLS_output_path = "$PWD/output_opt_check"
+params.signature_prefix = "sigProfiler"
 
 params.weak_thresholds = ['0.0010', '0.0020', '0.0030', '0.0040', '0.0050', '0.0060', '0.0070', '0.0080', '0.0090', '0.0100']
 params.strong_thresholds = ['0.0010', '0.0020', '0.0030', '0.0040', '0.0050', '0.0060', '0.0070', '0.0080', '0.0090', '0.0100']
@@ -66,7 +67,7 @@ process run_NNLS {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x --add_suffix
+  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x --add_suffix
   """
 }
 
@@ -81,6 +82,6 @@ process run_NNLS_TSB {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x -c 192 --add_suffix
+  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x -c 192 --add_suffix
   """
 }

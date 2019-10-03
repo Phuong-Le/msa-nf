@@ -54,6 +54,7 @@ params.perform_bootstrapping = true
 params.number_of_bootstrapped_samples = 1000
 params.NNLS_output_path = "$PWD/output_tables"
 params.plots_output_path = "$PWD/plots"
+params.signature_prefix = "sigProfiler"
 
 optimised_flag = (params.optimised) ? "-x" : ''
 
@@ -73,7 +74,7 @@ process run_NNLS_normal {
   script:
   """
   python $PWD/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
-                                  -i ${params.input_tables} -s ${params.signature_tables} -o "./"
+                                  -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   """
 }
 
@@ -96,7 +97,7 @@ process run_NNLS_bootstrapping {
   script:
   """
   python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
-                                  -i ${params.input_tables} -s ${params.signature_tables} -o "./"
+                                  -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   mv ${dataset}/output_${mutation_type}_mutations_table.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_mutations_table.csv
   mv ${dataset}/output_${mutation_type}_weights_table.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv
   mv ${dataset}/output_${mutation_type}_stat_info.csv ${dataset}/output_${dataset}_${mutation_type}_${i}_stat_info.csv
@@ -125,7 +126,7 @@ process plot_bootstrap_attributions {
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv ${params.NNLS_output_path}/${dataset}/
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
-  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} \
+  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
           -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
           -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
   """
