@@ -22,6 +22,7 @@ nextflow run run_analysis.nf
 ```
 
 The pipeline should run everything and produce all the results automatically.
+In the [run_analysis.nf](run_analysis.nf) file various parameters can be specified. Switching *SIM* dataset to *SIMrand* and *params.signature_prefix* to *sigRandom* would allow running the pipeline for a sample dataset generated with random signatures (more info below).
 
 ## Running manually
 
@@ -44,7 +45,7 @@ source activate MSA
 
 ### Simulating data
 
-* [input_mutation_tables/SIM](input_mutation_tables/SIM) folder contains a set produced with existing (PCAWG or COSMIC) signatures. [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function was used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](https://gitlab.com/s.senkin/MSA/tree/scripts/simulate_data.py#L9) dictionary in the script, containing Gaussian means and standard deviations for each signature.
+* [input_mutation_tables/SIM](input_mutation_tables/SIM) folder contains a set produced with existing (PCAWG or COSMIC) signatures. [np.random.normal](https://docs.scipy.org/doc/numpy/reference/generated/numpy.random.normal.html) function was used to generate normal distributions of mutational burdens corresponding to each PCAWG signature mentioned in the [signatures_to_generate](scripts/simulate_data.py#L9) dictionary in the script, containing Gaussian means and standard deviations for each signature.
 * Note that the distributions are not strictly Gaussian since negative numbers of burdens are replaced by zeros
 * To reproduce the simulated set of samples with reshuffled *SBS1/5/22/40* PCAWG signatures, one can run the following script (without the *-r* option):
 ```
