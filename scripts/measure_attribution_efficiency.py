@@ -89,12 +89,12 @@ if __name__ == '__main__':
                       help="set mutation type (SBS, DBS, ID)")
     parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
-    parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_tables_NNLS/',
+    parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
                       help="set path to input reconstructed weights tables")
-    parser.add_option("-I", "--input_truth_path", dest="input_truth_path", default='simulations/',
+    parser.add_option("-I", "--input_truth_path", dest="input_truth_path", default='input_mutation_tables/',
                       help="set path to input truth (simulated) weights tables")
     parser.add_option("-m", "--methods", type='string', action='callback', callback=get_comma_separated_args,
-                      dest = "methods", default = ['NNLS_unoptimised','NNLS_0.010_0.050','NNLS_unoptimised_TSB_rules','NNLS_0.010_0.050_TSB_rules','NNLS_unoptimised','NNLS_0.010_0.050','NNLS_unoptimised_TSB_rules','NNLS_0.010_0.050_TSB_rules'],
+                      dest = "methods", default = ['NNLS_0.0010_0.0010','NNLS_0.0020_0.0020','NNLS_0.0030_0.0030','NNLS_0.0040_0.0040','NNLS_0.0010_0.0010','NNLS_0.0020_0.0020','NNLS_0.0030_0.0030','NNLS_0.0040_0.0040'],
                       help="set input method names (e.g. -d optimised,unoptimised)")
     parser.add_option("-c", "--contexts", type='string', action='callback', callback=get_comma_separated_args,
                       dest = "contexts", default = ['96','96','96','96','192','192','192','192'],
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     mutation_type = options.mutation_type
     dataset = options.dataset_name
     input_reco_path = options.input_reco_path
-    input_truth_path = options.input_truth_path
+    input_truth_path = options.input_truth_path + '/' + dataset
     methods = options.methods
     contexts = options.contexts
 

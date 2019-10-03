@@ -97,15 +97,15 @@ nextflow run run_NNLS_optimisation.nf
 The output will be produced in **output_opt_check** folder, upon which one may run the plotting script producing efficiency heatmaps, e.g.:
 
 ```
-python comparison_code/make_efficiency_heatmaps.py -m NNLS -c 96
-python comparison_code/make_efficiency_heatmaps.py -m NNLS -c 192
+python scripts/make_efficiency_heatmaps.py -m NNLS -c 96
+python scripts/make_efficiency_heatmaps.py -m NNLS -c 192
 ```
 
 ### Fixed attribution results comparison
 
 Upon running signature attribution, the script to measure and plot attribution efficiencies for various methods can be run as follows (*-t* flag to choose other mutations types: *DBS* or *ID*, help on more flags with *-h*):
 ```
-python comparison_code/measure_attribution_efficiency.py -t SBS
+python scripts/measure_attribution_efficiency.py -t SBS
 ```
 
 All the efficiency plots are be produced in **efficiency_plots** folder.
