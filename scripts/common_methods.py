@@ -131,16 +131,16 @@ def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples
             else:
                 raise ValueError(
                     "Invalid signature attribution values -- please check the tables")
-    sensitivity = true_positives / (true_positives + false_negatives)
-    specificity = true_negatives / (true_negatives + false_positives)
-    precision = true_positives / (true_positives + false_positives)
+    sensitivity = np.float64(true_positives) / (true_positives + false_negatives)
+    specificity = np.float64(true_negatives) / (true_negatives + false_positives)
+    precision = np.float64(true_positives) / (true_positives + false_positives)
 
     # print("Missed sigs mean/median/stdev/max:",np.mean(false_negatives_signatures),np.median(false_negatives_signatures),np.std(false_negatives_signatures),np.max(false_negatives_signatures))
     # plot_array_as_histogram([true_positives_signatures, false_positives_signatures, false_negatives_signatures], ['True positives', 'False positives', 'False negatives'], title = 'Signature attribution distributions', savepath="distributions.pdf")
 
-    accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
-    F1 = 2 * true_positives / (2 * true_positives + false_positives + false_negatives)
-    MCC = (true_positives * true_negatives - false_positives * false_negatives) / math.sqrt((true_positives + false_positives)
+    accuracy = np.float64(true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+    F1 = 2 * np.float64(true_positives) / (2 * true_positives + false_positives + false_negatives)
+    MCC = np.float64(true_positives * true_negatives - false_positives * false_negatives) / math.sqrt((true_positives + false_positives)
             * (true_positives + false_negatives) * (true_negatives + false_positives) * (true_negatives + false_negatives))
 
     return sensitivity, specificity, precision, accuracy, F1, MCC
