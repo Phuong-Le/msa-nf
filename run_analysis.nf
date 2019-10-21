@@ -55,6 +55,7 @@ params.number_of_bootstrapped_samples = 1000
 params.NNLS_output_path = "$PWD/output_tables"
 params.plots_output_path = "$PWD/plots"
 params.signature_prefix = "sigProfiler"
+// params.signature_prefix = "sigRandom"
 
 optimised_flag = (params.optimised) ? "-x" : ''
 
@@ -70,6 +71,7 @@ process run_NNLS_normal {
   file("./${dataset}/output_${mutation_type}_weights_table.csv")
   file("./${dataset}/output_${mutation_type}_stat_info.csv")
   set dataset, mutation_type into attribution_for_bootstrap_plots
+  set dataset, mutation_type into attribution_for_metrics
 
   script:
   """
@@ -89,7 +91,8 @@ process run_NNLS_bootstrapping {
   output:
   file("./${dataset}/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
   file("./${dataset}/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
-  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output
+  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_for_attribution_plots
+  file("./${dataset}/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_for_metrics
 
   when:
   params.perform_bootstrapping
@@ -109,7 +112,38 @@ process plot_bootstrap_attributions {
 
   input:
   set dataset, mutation_type from attribution_for_bootstrap_plots
-  file bootstrap_weights from bootstrap_output.collect()
+  file bootstrap_weights from bootstrap_output_for_attribution_plots.collect()
+
+  output:
+  file '*/*/bootstrap_plots/*.pdf' optional true
+  file '*/*/bootstrap_plots/*/*.pdf' optional true
+  file '*/*/bootstrap_plots/*/*/*.pdf' optional true
+
+  when:
+  params.perform_bootstrapping
+
+  script:
+  """
+  mkdir -p ${params.NNLS_output_path}/${dataset}
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "SBS" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.${params.SBS_context}.weights.csv ${params.NNLS_output_path}/${dataset}/
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "DBS" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv ${params.NNLS_output_path}/${dataset}/
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
+  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
+          -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
+          -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
+  """
+}
+
+
+process plot_metrics {
+  publishDir "${params.plots_output_path}"
+
+  input:
+  set dataset, mutation_type from attribution_for_metrics
+  file bootstrap_weights from bootstrap_output_for_metrics.collect()
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
@@ -126,7 +160,7 @@ process plot_bootstrap_attributions {
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv ${params.NNLS_output_path}/${dataset}/
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
-  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
+  python $PWD/scripts/measure_bootstrap_sensitivity_specificity.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
           -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
           -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
   """
