@@ -92,9 +92,11 @@ if __name__ == '__main__':
     parser.add_option("-n", "--number_of_samples", dest="number_of_samples", default=100, type='int',
                       help="set the number of samples to generate (100 by default)")
     parser.add_option("-z", "--noise", dest="add_noise", action="store_true",
-                      help="Add Gaussian white noise")
+                      help="Add noise of type specified by noise_type parameter")
+    parser.add_option("--noise_type", dest="noise_type", default='poisson',
+                      help="Choose the type of noise: Poisson, Gaussian or negative_binomial (Poisson variation by default)")
     parser.add_option("-Z", "--noise_sigma", dest="noise_sigma", default=2, type='float',
-                      help="Set the Gaussian standard deviation of the white noise (2 by default)")
+                      help="Set standard deviation of Gaussian noise if used (2 by default)")
     parser.add_option("-r", "--random", dest="random_signatures", action="store_true",
                       help="Use randomly generated signatures instead of PCAWG reference ones")
     parser.add_option("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type='int',
@@ -145,8 +147,8 @@ if __name__ == '__main__':
     if random_signatures:
         random_signature_indexes = random.sample(reference_signatures.columns.to_list(), number_of_random_sigs)
         for random_sig in random_signature_indexes:
-            mu = np.random.normal(2000, 1000, 1)[0]
-            sigma = np.random.normal(500, 100, 1)[0]
+            mu = np.random.normal(2000, 1000)
+            sigma = np.random.normal(500, 100)
             mu = mu if mu>=0 else 0
             sigma = sigma if sigma>=0 else 0
             # draw burdens from normal distribution
@@ -194,8 +196,15 @@ if __name__ == '__main__':
         generated_mutations[i] = mutational_burden*generated_mutations[i]
 
         if options.add_noise:
-            noise_term = np.random.normal(0, options.noise_sigma, len(reference_signatures[signature].values))
-            generated_mutations[i] += noise_term
+            if options.noise_type=="gaussian" or options.noise_type=="Gaussian" or options.noise_type=="normal" or options.noise_type=="Normal":
+                noise_term = np.random.normal(0, options.noise_sigma, len(generated_mutations[i]))
+                generated_mutations[i] += noise_term
+            elif options.noise_type=="poisson" or options.noise_type=="Poisson":
+                for category_index in range(len(generated_mutations[i])):
+                    generated_mutations[i][category_index] = np.random.poisson(generated_mutations[i][category_index])
+            elif options.noise_type=="negative_binomial" or options.noise_type=="Negative_binomial":
+                noise_term = np.random.negative_binomial(2, 0.5, len(reference_signatures[signature].values))
+                generated_mutations[i] += noise_term
             # make sure there are no negative mutation counts
             generated_mutations.loc[generated_mutations[i]<0, i] = 0
 
