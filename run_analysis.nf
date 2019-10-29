@@ -44,16 +44,17 @@ if (params.help) {
 log.info "help:                               ${params.help}"
 }
 
-params.datasets = ['SIM']
+params.datasets = ['SIM_ESCC']
+//params.datasets = ['SIM']
 params.mutation_types = ['SBS']
 params.input_tables = "$PWD/input_mutation_tables"
 params.signature_tables = "$PWD/signature_tables"
 params.SBS_context = 192
-params.optimised = true
+params.optimised = false
 params.perform_bootstrapping = true
 params.number_of_bootstrapped_samples = 1000
-params.NNLS_output_path = "$PWD/output_tables"
-params.plots_output_path = "$PWD/plots"
+params.NNLS_output_path = "$PWD/output_tables_ESCC"
+params.plots_output_path = "$PWD/plots_ESCC"
 params.signature_prefix = "sigProfiler"
 // params.signature_prefix = "sigRandom"
 
@@ -147,6 +148,7 @@ process plot_metrics {
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
+  file '*/*/bootstrap_plots/*/*.pdf' optional true
 
   when:
   params.perform_bootstrapping
