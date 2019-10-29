@@ -18,10 +18,10 @@ def bootstrap_mutation_table(input_dataframe, method="classic"):
         bootstrap_mutations = input_mutations.sample(n=len(input_mutations.index), replace=True)
         # keep the old index (mutation categories)
         bootstrap_mutations.index = original_index
-    if method=="poisson":
+    elif method=="poisson":
         # Poisson bootstrap (n>100 and i.i.d. assumption)
         bootstrap_mutations = input_mutations.applymap(lambda x: x*np.random.poisson(1))
-    if method=="binomial" or "multinomial" in method:
+    elif method=="binomial" or "multinomial" in method:
         # mutational burdens for each sample (column) for normalisation
         sums = input_mutations.sum(axis=0)
         normalised_input_mutations = input_mutations.div(sums, axis=1)

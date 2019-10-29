@@ -12,10 +12,13 @@ signatures_to_generate = {
     # and sigma is the standard deviation of the normal distribution used for simulating
     # the mutational burden attributed to the signature.
     # Signature names (strings) have to be present in the input signature tables.
-    'SBS1':[140,270],
-    'SBS5':[100,270],
-    'SBS22':[300,1500],
-    'SBS40':[2000,1000],
+    'SBS1':[150, 100],
+    'SBS2':[150, 130],
+    'SBS5':[0, 50],
+    'SBS13':[150, 130],
+    'SBS18':[100, 100],
+    'SBS21':[0, 50],
+    'SBS40':[200, 300],
     # 'ID1':[140,270],
     # 'ID2':[2000,1000],
 }
