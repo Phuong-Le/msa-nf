@@ -1,8 +1,12 @@
-import os, math, copy
+"""
+Common methods module used across different scripts
+"""
+import os
+import math
+import warnings
 import numpy as np
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
-import scipy.stats as stats
 
 def make_folder_if_not_exists(folder):
     if not os.path.exists(folder):
@@ -10,9 +14,6 @@ def make_folder_if_not_exists(folder):
             os.makedirs(folder)
         except:
             warnings.warn("Could not create a folder ", folder)
-
-def get_comma_separated_args(option, opt, value, parser):
-    setattr(parser.values, option.dest, value.split(','))
 
 def plot_array_as_histogram(arrays, labels, title, savepath='./hist.pdf'):
     fig = plt.figure()

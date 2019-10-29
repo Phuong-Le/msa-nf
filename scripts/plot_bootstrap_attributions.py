@@ -1,15 +1,14 @@
-from optparse import OptionParser
-import os, copy
-import warnings
+from argparse import ArgumentParser
+import copy
 import numpy as np
 import pandas as pd
-from common_methods import get_comma_separated_args, make_folder_if_not_exists
 import matplotlib
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
-plt.rc('text', usetex=False)
 import matplotlib.patches as mpatches
 import seaborn as sns
+from common_methods import make_folder_if_not_exists
+plt.rc('text', usetex=False)
 
 def plot_bootstrap_attribution_histograms(input_table, centrals, title, savepath='./hist.pdf'):
     table = copy.deepcopy(input_table)
@@ -41,7 +40,7 @@ def plot_bootstrap_attribution_histograms(input_table, centrals, title, savepath
     plt.savefig(savepath, transparent=True)
     plt.close()
 
-def make_bootstrap_attribution_boxplot(input_table, centrals = None, truth = None, prefix = 'Bootstrap', method = 'NNLS', title='', x_label = '', y_label = '', savepath='./boxplot.pdf'):
+def make_bootstrap_attribution_boxplot(input_table, centrals = None, truth = None, show_mean = False, prefix = 'Bootstrap', method = 'NNLS', title='', x_label = '', y_label = '', savepath='./boxplot.pdf'):
     table = copy.deepcopy(input_table)
     output_folder = savepath.rsplit('/',1)[0]
     make_folder_if_not_exists(output_folder)
@@ -54,7 +53,7 @@ def make_bootstrap_attribution_boxplot(input_table, centrals = None, truth = Non
     ax.set_title(title, fontsize=14, pad=10)
 
     sns.set(style="whitegrid")
-    ax = sns.boxplot(data=table, palette="colorblind", whis=[2.5, 97.5], showfliers=False)
+    ax = sns.boxplot(data=table, palette="colorblind", whis=[2.5, 97.5], showfliers=False, meanline = show_mean, showmeans = show_mean)
 
     # add counts to labels
     # sig_labels = [t.get_text() for t in ax.get_xticklabels()]
@@ -74,7 +73,7 @@ def make_bootstrap_attribution_boxplot(input_table, centrals = None, truth = Non
                 plt.plot([column_range[id]], [list(truth.values())[id]], marker="o", linestyle="None", markersize=3, color='green', label = "Truth")
 
     # Add a boxplot patch for legend
-    boxplot_patch = mpatches.Patch(color='gray', edgecolor='black', lw=2, label=prefix + ' ' + method)
+    boxplot_patch = mpatches.Patch(color='gray', lw=2, label=prefix + ' ' + method)
     handles, labels = ax.get_legend_handles_labels()
     if truth and centrals:
         handles = handles[:2]
@@ -100,47 +99,43 @@ def make_bootstrap_attribution_boxplot(input_table, centrals = None, truth = Non
     plt.close()
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-i", "--input_attributions_folder", dest="input_attributions_folder", default='output_tables/',
-                      help="set path to NNLS output data")
-    parser.add_option("-I", "--input_mutations_folder", dest="input_mutations_folder", default='input_mutation_tables/',
-                      help="set path to datasets with input mutation tables")
-    parser.add_option("-S", "--signature_path", dest="signature_tables_path", default='signature_tables/',
-                      help="set path to signature tables")
-    parser.add_option("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
-                      help="set prefix in signature filenames (sigProfiler by default)")
-    parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
-                      help="set the dataset name (e.g. SIM)")
-    parser.add_option("-o", "--output_folder", dest="output_folder", default='plots/',
-                      help="set path to save plots")
-    parser.add_option("-t", "--mutation_type", dest="mutation_type", default='',
-                      help="set mutation type (SBS, DBS, ID)")
-    parser.add_option("-c", "--context", dest="context", default=192, type='int',
-                      help="set SBS context (96, 192)")
-    parser.add_option("-a", "--plot_absolute_numbers", dest="abs_numbers", action="store_true",
-                      help="show absolute numbers of mutations")
-    parser.add_option("-s", "--signatures_for_boxplots", type='string', action='callback', callback=get_comma_separated_args,
-                      dest = "signatures_for_boxplots", default = [],
-                      help="set signatures for box plots as a comma-separated list, e.g. -s SBS5,SBS40")
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
-                      help="print additional information for debugging")
-    parser.add_option("-n", "--number_of_b_samples", dest="number_of_b_samples", default=1000, type='int',
-                      help="Number of bootstrapped samples (1000 by default)")
-    parser.add_option("-N", "--number_of_samples", dest="number_of_samples", default=-1, type='int',
-                      help="limit the number of samples to analyse (all by default)")
+    parser = ArgumentParser()
+    parser.add_argument("-i", "--input_attributions_folder", dest="input_attributions_folder", default='output_tables/',
+                        help="set path to NNLS output data")
+    parser.add_argument("-I", "--input_mutations_folder", dest="input_mutations_folder", default='input_mutation_tables/',
+                        help="set path to datasets with input mutation tables")
+    parser.add_argument("-S", "--signature_path", dest="signature_tables_path", default='signature_tables/',
+                        help="set path to signature tables")
+    parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
+                        help="set prefix in signature filenames (sigProfiler by default)")
+    parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
+                        help="set the dataset name (e.g. SIM)")
+    parser.add_argument("-o", "--output_folder", dest="output_folder", default='plots/',
+                        help="set path to save plots")
+    parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
+                        help="set mutation type (SBS, DBS, ID)")
+    parser.add_argument("-c", "--context", dest="context", default=192, type=int,
+                        help="set SBS context (96, 192)")
+    parser.add_argument("-a", "--plot_absolute_numbers", dest="abs_numbers", action="store_true",
+                        help="show absolute numbers of mutations")
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
+                        help="print additional information for debugging")
+    parser.add_argument("-n", "--number_of_b_samples", dest="number_of_b_samples", default=1000, type=int,
+                        help="Number of bootstrapped samples (1000 by default)")
+    parser.add_argument("-N", "--number_of_samples", dest="number_of_samples", default=-1, type=int,
+                        help="limit the number of samples to analyse (all by default)")
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    dataset_name = options.dataset_name
-    mutation_type = options.mutation_type
-    context = options.context
-    number_of_b_samples = options.number_of_b_samples
-    signatures_for_boxplots = options.signatures_for_boxplots
-    signature_tables_path = options.signature_tables_path
-    signatures_prefix = options.signatures_prefix
-    input_mutations_folder = options.input_mutations_folder
-    input_attributions_folder = options.input_attributions_folder + '/' + dataset_name + '/'
-    output_folder = options.output_folder + '/' + dataset_name + '/' + mutation_type + '/bootstrap_plots/'
+    dataset_name = args.dataset_name
+    mutation_type = args.mutation_type
+    context = args.context
+    number_of_b_samples = args.number_of_b_samples
+    signature_tables_path = args.signature_tables_path
+    signatures_prefix = args.signatures_prefix
+    input_mutations_folder = args.input_mutations_folder
+    input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
+    output_folder = args.output_folder + '/' + dataset_name + '/' + mutation_type + '/bootstrap_plots/'
     make_folder_if_not_exists(output_folder)
 
     if not mutation_type:
@@ -182,11 +177,9 @@ if __name__ == '__main__':
         elif mutation_type=='ID':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
 
-    # use all available signatures for boxplots unless specified
-    if not signatures_for_boxplots:
-        signatures_for_boxplots = list(central_attribution_table_abs.columns)
+    signatures_to_consider = list(central_attribution_table_abs.columns)
 
-    if options.abs_numbers:
+    if args.abs_numbers:
         central_attribution_table = central_attribution_table_abs
         bootstrap_attribution_table_filename = bootstrap_attribution_table_abs_filename
         colormap_label = 'Absolute mutations number'
@@ -198,8 +191,8 @@ if __name__ == '__main__':
         filename = 'bootstrap_plot_weights'
 
     # limit the number of samples to analyse (if specified by -N option)
-    if options.number_of_samples!=-1:
-        central_attribution_table = central_attribution_table.head(options.number_of_samples)
+    if args.number_of_samples!=-1:
+        central_attribution_table = central_attribution_table.head(args.number_of_samples)
 
     main_title = dataset_name.replace('_','/') + ' data, ' + mutation_type + ' mutation type'
 
@@ -215,11 +208,11 @@ if __name__ == '__main__':
     # initialise per-sample attribution dictionary
     attributions_per_sample_dict = {}
     for sample in samples:
-        attributions_per_sample_dict[sample] = pd.DataFrame(index=range(number_of_b_samples), columns=signatures_for_boxplots, dtype=float)
+        attributions_per_sample_dict[sample] = pd.DataFrame(index=range(number_of_b_samples), columns=signatures_to_consider, dtype=float)
 
     # initialise per-signature attribution dictionary
     attributions_per_signature_dict = {}
-    for signature in signatures_for_boxplots:
+    for signature in signatures_to_consider:
         attributions_per_signature_dict[signature] = pd.DataFrame(index=range(number_of_b_samples), columns=samples, dtype=float)
 
     # mutation categories from signatures table
@@ -237,7 +230,7 @@ if __name__ == '__main__':
         # back-calculate mutation spectra from bootstrap attributions and signatures
         mutation_spectra = bootstrap_attribution_table_abs.dot(signatures.T)
         for sample in samples:
-            for signature in signatures_for_boxplots:
+            for signature in signatures_to_consider:
                 attributions_per_sample_dict[sample].loc[i, signature] = bootstrap_attribution_table.loc[sample, signature]
                 attributions_per_signature_dict[signature].loc[i, sample] = bootstrap_attribution_table.loc[sample, signature]
             for category in categories:
@@ -253,12 +246,13 @@ if __name__ == '__main__':
         y_label = 'Signature attribution',
         savepath = output_folder + '/' + filename.replace('bootstrap_plot','all_attributions') + '.pdf')
 
-    make_bootstrap_attribution_boxplot(truth_attribution_table,
-        title = main_title + ': truth attributions',
-        prefix = 'Truth',
-        method = '',
-        y_label = 'Signature attribution',
-        savepath = output_folder + '/all_true_values.pdf')
+    if 'SIM' in dataset_name:
+        make_bootstrap_attribution_boxplot(truth_attribution_table,
+            title = main_title + ': truth attributions',
+            prefix = 'Truth',
+            method = '',
+            y_label = 'Signature attribution',
+            savepath = output_folder + '/all_true_values.pdf')
 
     # make bootstrap attribution plots for each sample
     for sample in samples:
@@ -274,7 +268,7 @@ if __name__ == '__main__':
             method = "NNLS (recalculated)",
             y_label = 'Mutation count',
             savepath = output_folder + '/sample_based/spectra/bootstrap_plot_' + str(sample) + '_spectrum.pdf')
-        for signature in signatures_for_boxplots:
+        for signature in signatures_to_consider:
             # do not plot signatures with both central (or truth) and mean bootstrap attributions of zero:
             if 'SIM' in dataset_name:
                 if truth_attribution_table.loc[sample, signature] == 0 and np.mean(attributions_per_sample_dict[sample][signature] == 0):
@@ -287,7 +281,7 @@ if __name__ == '__main__':
             savepath = output_folder + '/sample_based/histograms/' + filename + '_' + str(sample) + '_dist.pdf')
 
     # make bootstrap attribution plots for each signature
-    for signature in signatures_for_boxplots:
+    for signature in signatures_to_consider:
         if 'SIM' in dataset_name and np.mean(truth_attribution_table[signature].values)==0 and np.mean(attributions_per_signature_dict[signature].values)==0:
                 continue
         make_bootstrap_attribution_boxplot(attributions_per_signature_dict[signature],
