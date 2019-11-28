@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+from common_methods import make_folder_if_not_exists
 
 signatures_to_generate = {
     # Dictionary with signature burdens to be generated.
@@ -22,13 +23,6 @@ signatures_to_generate = {
     # 'ID1':[140,270],
     # 'ID2':[2000,1000],
 }
-
-def make_folder_if_not_exists(folder):
-    if not os.path.exists(folder):
-        try:
-            os.makedirs(folder)
-        except:
-            warnings.warn("Could not create a folder ", folder)
 
 def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total', savepath = './burden.pdf'):
     """
