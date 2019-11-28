@@ -7,7 +7,7 @@ matplotlib.use("agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
-from common_methods import make_folder_if_not_exists
+from common_methods import make_folder_if_not_exists, read_data_from_JSON
 plt.rc('text', usetex=False)
 
 def plot_bootstrap_attribution_histograms(input_table, centrals, title, savepath='./hist.pdf'):
@@ -149,24 +149,21 @@ if __name__ == '__main__':
     central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_mutations_table.csv' % mutation_type, index_col=0)
     central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_weights_table.csv' % mutation_type, index_col=0)
     central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_stat_info.csv' % mutation_type, index_col=0)
-    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/output_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type)
-    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/output_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type)
-    bootstrap_stat_table_filename = input_attributions_folder + '/output_%s_%s_i_stat_info.csv' % (dataset_name, mutation_type)
 
     if mutation_type=='SBS':
         if context==96:
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0,1])
-            signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1])
+            # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1])
         elif context==192:
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0,1,2])
-            signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1,2])
+            # signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1,2])
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
-        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
+        # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
         input_mutations = pd.read_csv('%s/%s/WGS_%s.dinucs.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
     elif mutation_type=='ID':
-        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
+        # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
         input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
 
     if 'SIM' in dataset_name:
@@ -177,22 +174,26 @@ if __name__ == '__main__':
         elif mutation_type=='ID':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
 
-    signatures_to_consider = list(central_attribution_table_abs.columns)
-
     if args.abs_numbers:
         central_attribution_table = central_attribution_table_abs
-        bootstrap_attribution_table_filename = bootstrap_attribution_table_abs_filename
         colormap_label = 'Absolute mutations number'
         filename = 'bootstrap_plot_abs_mutations'
     else:
         central_attribution_table = central_attribution_table_weights
-        bootstrap_attribution_table_filename = bootstrap_attribution_table_weights_filename
         colormap_label = 'Relative contribution'
         filename = 'bootstrap_plot_weights'
 
     # limit the number of samples to analyse (if specified by -N option)
     if args.number_of_samples!=-1:
         central_attribution_table = central_attribution_table.head(args.number_of_samples)
+    # convert columns and index to str
+    central_attribution_table.columns = central_attribution_table.columns.astype(str)
+    central_attribution_table.index = central_attribution_table.index.astype(str)
+    if 'SIM' in dataset_name:
+        truth_attribution_table.columns = truth_attribution_table.columns.astype(str)
+        truth_attribution_table.index = truth_attribution_table.index.astype(str)
+
+    signatures_to_consider = list(central_attribution_table_abs.columns)
 
     main_title = dataset_name.replace('_','/') + ' data, ' + mutation_type + ' mutation type'
 
@@ -200,52 +201,22 @@ if __name__ == '__main__':
     samples = central_attribution_table.index.to_list()
     stat_metrics = central_stat_table.columns.to_list()
 
-    # initialise statistical metrics to fill with bootstrap values
-    stat_metrics_dict = {}
-    for metric in stat_metrics:
-        stat_metrics_dict[metric] = pd.DataFrame(index=range(number_of_b_samples), columns=samples, dtype=float)
+    # read dictionaries from JSON files produced by make_bootstrap_tables.py script
+    common_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
+    stat_metrics_dict = read_data_from_JSON(input_attributions_folder + "stat_metrics" + common_filename_suffix)
+    attributions_per_sample_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_sample" + common_filename_suffix)
+    attributions_per_signature_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_signature" + common_filename_suffix)
+    # # pd.to_json function does not fully support MultiIndex (present in signature tables), hence commented out for now
+    # mutation_spectra_dict = read_data_from_JSON(input_attributions_folder + "mutation_spectra" + common_filename_suffix, set_index=[0, 1])
 
-    # initialise per-sample attribution dictionary
-    attributions_per_sample_dict = {}
-    for sample in samples:
-        attributions_per_sample_dict[sample] = pd.DataFrame(index=range(number_of_b_samples), columns=signatures_to_consider, dtype=float)
-
-    # initialise per-signature attribution dictionary
-    attributions_per_signature_dict = {}
-    for signature in signatures_to_consider:
-        attributions_per_signature_dict[signature] = pd.DataFrame(index=range(number_of_b_samples), columns=samples, dtype=float)
-
-    # mutation categories from signatures table
-    categories = signatures.index.to_list()
-    # initialise mutation spectra dictionary
-    mutation_spectra_dict = {}
-    for sample in samples:
-        mutation_spectra_dict[sample] = pd.DataFrame(index=range(number_of_b_samples), columns=categories, dtype=float)
-
-    # fill bootstrap dataframes for boxplots
-    for i in range(number_of_b_samples):
-        bootstrap_attribution_table = pd.read_csv(bootstrap_attribution_table_filename.replace('_i_', '_%i_' % (i+1)), index_col=0)
-        bootstrap_attribution_table_abs = pd.read_csv(bootstrap_attribution_table_abs_filename.replace('_i_', '_%i_' % (i+1)), index_col=0)
-        stat_table = pd.read_csv(bootstrap_stat_table_filename.replace('_i_', '_%i_' % (i+1)), index_col=0)
-        # back-calculate mutation spectra from bootstrap attributions and signatures
-        mutation_spectra = bootstrap_attribution_table_abs.dot(signatures.T)
-        for sample in samples:
-            for signature in signatures_to_consider:
-                attributions_per_sample_dict[sample].loc[i, signature] = bootstrap_attribution_table.loc[sample, signature]
-                attributions_per_signature_dict[signature].loc[i, sample] = bootstrap_attribution_table.loc[sample, signature]
-            for category in categories:
-                mutation_spectra_dict[sample].loc[i, category] = mutation_spectra.loc[sample, category]
-            for metric in stat_metrics:
-                stat_metrics_dict[metric].loc[i, sample] = stat_table.loc[sample, metric]
-                stat_metrics_dict[metric].loc[i, sample] = stat_table.loc[sample, metric]
-
-
+    # make a boxplot with central attributions
     make_bootstrap_attribution_boxplot(central_attribution_table,
         title = main_title + ': NNLS attributions',
         prefix = 'Optimised',
         y_label = 'Signature attribution',
         savepath = output_folder + '/' + filename.replace('bootstrap_plot','all_attributions') + '.pdf')
 
+    # if applicable, make a boxplot with truth attributions
     if 'SIM' in dataset_name:
         make_bootstrap_attribution_boxplot(truth_attribution_table,
             title = main_title + ': truth attributions',
@@ -258,16 +229,17 @@ if __name__ == '__main__':
     for sample in samples:
         make_bootstrap_attribution_boxplot(attributions_per_sample_dict[sample],
             centrals = central_attribution_table.loc[sample].to_dict(),
-            title = main_title + ': sample ' + str(sample).replace("_", "-"),
+            title = main_title + ': sample ' + sample.replace("_", "-"),
             truth = truth_attribution_table.loc[sample].to_dict() if 'SIM' in dataset_name else None,
             y_label = 'Signature attribution',
-            savepath = output_folder + '/sample_based/' + filename + '_' + str(sample) + '.pdf')
-        make_bootstrap_attribution_boxplot(mutation_spectra_dict[sample],
-            truth = input_mutations[str(sample)].to_dict(),
-            title = main_title + ': sample ' + str(sample).replace("_", "-"),
-            method = "NNLS (recalculated)",
-            y_label = 'Mutation count',
-            savepath = output_folder + '/sample_based/spectra/bootstrap_plot_' + str(sample) + '_spectrum.pdf')
+            savepath = output_folder + '/sample_based/' + filename + '_' + sample + '.pdf')
+        # # pd.to_json function does not fully support MultiIndex (present in signature tables), hence commented out for now
+        # make_bootstrap_attribution_boxplot(mutation_spectra_dict[sample],
+        #     truth = input_mutations[sample].to_dict(),
+        #     title = main_title + ': sample ' + sample.replace("_", "-"),
+        #     method = "NNLS (recalculated)",
+        #     y_label = 'Mutation count',
+        #     savepath = output_folder + '/sample_based/spectra/bootstrap_plot_' + sample + '_spectrum.pdf')
         for signature in signatures_to_consider:
             # do not plot signatures with both central (or truth) and mean bootstrap attributions of zero:
             if 'SIM' in dataset_name:
@@ -275,21 +247,24 @@ if __name__ == '__main__':
                     attributions_per_sample_dict[sample].drop(signature, axis=1, inplace=True)
             elif central_attribution_table.loc[sample, signature] == 0 and np.mean(attributions_per_sample_dict[sample][signature] == 0):
                 attributions_per_sample_dict[sample].drop(signature, axis=1, inplace=True)
+        # make sample-based plots with signature attributions as histograms
         plot_bootstrap_attribution_histograms(attributions_per_sample_dict[sample],
             centrals = central_attribution_table.loc[sample].to_dict(),
-            title = main_title + ': sample ' + str(sample).replace("_", "-"),
-            savepath = output_folder + '/sample_based/histograms/' + filename + '_' + str(sample) + '_dist.pdf')
+            title = main_title + ': sample ' + sample.replace("_", "-"),
+            savepath = output_folder + '/sample_based/histograms/' + filename + '_' + sample + '_dist.pdf')
 
     # make bootstrap attribution plots for each signature
     for signature in signatures_to_consider:
-        if 'SIM' in dataset_name and np.mean(truth_attribution_table[signature].values)==0 and np.mean(attributions_per_signature_dict[signature].values)==0:
+        if 'SIM' in dataset_name:
+            if np.mean(truth_attribution_table[signature].values)==0 and np.mean(attributions_per_signature_dict[signature].values)==0:
+                # skip zero signatures in both truth and measurement
                 continue
         make_bootstrap_attribution_boxplot(attributions_per_signature_dict[signature],
             centrals = central_attribution_table[signature].to_dict(),
-            title = main_title + ': signature ' + str(signature).replace("_", "-"),
+            title = main_title + ': signature ' + signature.replace("_", "-"),
             truth = truth_attribution_table[signature].to_dict() if 'SIM' in dataset_name else None,
             y_label = 'Signature attribution',
-            savepath = output_folder + '/signature_based/' + filename + '_' + str(signature) + '.pdf')
+            savepath = output_folder + '/signature_based/' + filename + '_' + signature + '.pdf')
 
     # make bootstrap plots for each statistical metric available
     for metric in stat_metrics:

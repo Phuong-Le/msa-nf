@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from common_methods import make_folder_if_not_exists, calculate_stat_scores
+from common_methods import make_folder_if_not_exists, read_data_from_JSON, calculate_stat_scores, calculate_confidence_interval
 matplotlib.use("agg")
 
 def make_lineplot(x_values, y_values, xlabel, ylabel, title='', savepath="./lineplot.pdf"):
@@ -106,8 +106,6 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("-i", "--input_attributions_folder", dest="input_attributions_folder", default='output_tables/',
                         help="set path to NNLS output data")
-    parser.add_argument("-I", "--input_mutations_folder", dest="input_mutations_folder", default='input_mutation_tables/',
-                        help="set path to datasets with input mutation tables")
     parser.add_argument("-S", "--signature_path", dest="signature_tables_path", default='signature_tables/',
                         help="set path to signature tables")
     parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
@@ -120,12 +118,8 @@ if __name__ == '__main__':
                         help="set mutation type (SBS, DBS, ID)")
     parser.add_argument("-c", "--context", dest="context", default=192, type=int,
                         help="set SBS context (96, 192, 1536)")
-    parser.add_argument("-a", "--plot_absolute_numbers", dest="abs_numbers", action="store_true",
-                        help="show absolute numbers of mutations")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                         help="print additional information for debugging")
-    parser.add_argument("-n", "--number_of_b_samples", dest="number_of_b_samples", default=1000, type=int,
-                        help="Number of bootstrapped samples (1000 by default)")
     parser.add_argument("-N", "--number_of_samples", dest="number_of_samples", default=-1, type=int,
                         help="limit the number of samples to analyse (all by default)")
 
@@ -135,10 +129,8 @@ if __name__ == '__main__':
     mutation_type = args.mutation_type
     context = args.context
     number_of_samples = args.number_of_samples
-    number_of_b_samples = args.number_of_b_samples
     signature_tables_path = args.signature_tables_path
     signatures_prefix = args.signatures_prefix
-    input_mutations_folder = args.input_mutations_folder
     input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
     output_folder = args.output_folder + '/' + dataset_name + '/' + mutation_type + '/bootstrap_plots/'
     make_folder_if_not_exists(output_folder)
@@ -152,30 +144,20 @@ if __name__ == '__main__':
     if not input_attributions_folder:
         parser.error("Please specify the input path for reconstructed weights tables using -i option.")
 
-
     central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_mutations_table.csv' % mutation_type, index_col=0)
     central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_weights_table.csv' % mutation_type, index_col=0)
-    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/output_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type)
-    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/output_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type)
-    if 'SIM' in dataset_name and 'PCAWG' in dataset_name:
-        bootstrap_attribution_table_weights_filename = input_attributions_folder + '/output_%s_i_weights_table.csv' % (mutation_type)
 
     if mutation_type == 'SBS':
         if context == 96:
-            input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0, 1])
             signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0, 1])
         elif context == 192:
-            # input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0,1,2])
-            input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=0)
             signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0, 1, 2])
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type == 'DBS':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.dinucs.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
     elif mutation_type == 'ID':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
 
     if 'SIM' in dataset_name:
         if mutation_type == 'SBS':
@@ -188,7 +170,6 @@ if __name__ == '__main__':
     signatures_to_consider = list(central_attribution_table_abs.columns)
 
     central_attribution_table = central_attribution_table_weights
-    bootstrap_attribution_table_filename = bootstrap_attribution_table_weights_filename
     colormap_label = 'Relative contribution'
     filename = 'bootstrap_plot_weights'
 
@@ -198,28 +179,24 @@ if __name__ == '__main__':
         if 'SIM' in dataset_name:
             truth_attribution_table = truth_attribution_table.head(args.number_of_samples)
 
+    # convert columns and index to str
+    central_attribution_table.columns = central_attribution_table.columns.astype(str)
+    central_attribution_table.index = central_attribution_table.index.astype(str)
+    if 'SIM' in dataset_name:
+        truth_attribution_table.columns = truth_attribution_table.columns.astype(str)
+        truth_attribution_table.index = truth_attribution_table.index.astype(str)
+
     main_title = dataset_name.replace('_', '/') + ' data, ' + mutation_type + ' mutation type'
 
-    # samples to consider
+    # samples and signatures to consider
     samples = central_attribution_table.index.to_list()
+    signatures_to_consider = list(central_attribution_table_abs.columns)
 
-    # initialise attribution dictionary
-    signature_attributions_dict = {}
-    for sample in samples:
-        signature_attributions_dict[sample] = pd.DataFrame(index=range(number_of_b_samples), columns=signatures_to_consider, dtype=float)
-
-    # mutation categories from signatures table
-    categories = signatures.index.to_list()
-    # fill bootstrap dataframes
-    for i in range(number_of_b_samples):
-        bootstrap_attribution_table = pd.read_csv(bootstrap_attribution_table_filename.replace('_i_', '_%i_' % (i+1)), index_col=0)
-        if args.number_of_samples != -1:
-            bootstrap_attribution_table = bootstrap_attribution_table.head(args.number_of_samples)
-        # bootstrap_attribution_table_abs = pd.read_csv(bootstrap_attribution_table_abs_filename.replace('_i_', '_%i_' % (i+1)), index_col=0)
-        for sample in samples:
-            for signature in signatures_to_consider:
-                signature_attributions_dict[sample].loc[i, signature] = bootstrap_attribution_table.loc[sample, signature]
-
+    # read dictionaries from JSON files produced by make_bootstrap_tables.py script
+    common_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
+    attributions_per_sample_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_sample" + common_filename_suffix)
+    # attributions_per_signature_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_signature" + common_filename_suffix)
+    number_of_b_samples = len(next(iter(attributions_per_sample_dict.values())).index)
 
     if 'SIM' in dataset_name:
         acting_signatures = []
@@ -229,15 +206,16 @@ if __name__ == '__main__':
 
     stat_scores_tables = pd.DataFrame(index=central_attribution_table.index, columns=scores, dtype=float)
     signatures_prevalences = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
-    signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
-    truth_and_measured_difference = pd.DataFrame(0, index=central_attribution_table.index, columns=['Truth - mean', 'Truth - median', 'Truth - NNLS'], dtype=float)
+    if 'SIM' in dataset_name:
+        signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
+        truth_and_measured_difference = pd.DataFrame(0, index=central_attribution_table.index, columns=['Truth - mean', 'Truth - median', 'Truth - NNLS'], dtype=float)
 
     # calculate signature CPs
     if 'SIM' in dataset_name:
         for sample in samples:
             for signature in signatures_to_consider:
-                array = signature_attributions_dict[sample][signature]
-                confidence_interval = [np.percentile(array, 2.5), np.percentile(array, 97.5)]
+                array = attributions_per_sample_dict[sample][signature]
+                confidence_interval = calculate_confidence_interval(array)
                 if signature in acting_signatures:
                     if confidence_interval[0] <= truth_attribution_table.loc[sample, signature] <= confidence_interval[1]:
                         signatures_CPs.loc[sample, signature] = 1
@@ -263,8 +241,8 @@ if __name__ == '__main__':
             signatures_CPs_dict[threshold] = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
             for sample in samples:
                 for signature in signatures_to_consider:
-                    array = signature_attributions_dict[sample][signature]
-                    confidence_interval = [np.percentile(array, 2.5), np.percentile(array, 97.5)]
+                    array = attributions_per_sample_dict[sample][signature]
+                    confidence_interval = calculate_confidence_interval(array)
                     # increase upper bound of CI if less than threshold
                     if confidence_interval[0] == 0 and confidence_interval[1] < threshold:
                         confidence_interval[1] = threshold
@@ -279,25 +257,26 @@ if __name__ == '__main__':
             signatures_CPs_dict[threshold] = signatures_CPs_dict[threshold].sum(axis=0).to_frame().T.div(len(samples))
 
     # plot sensitivity threshold vs CP plot for each sig
-    for signature in signatures_to_consider:
-        CPs = [signatures_CPs_dict[threshold][signature][0] for threshold in signature_attribution_thresholds]
-        make_lineplot(signature_attribution_thresholds, CPs, 'Sensitivity threshold', 'Confidence probability', 'Signature %s' % signature, output_folder + '/CP_curves/signature_%s_curve.pdf' % signature)
+    if 'SIM' in dataset_name:
+        for signature in signatures_to_consider:
+            CPs = [signatures_CPs_dict[threshold][signature][0] for threshold in signature_attribution_thresholds]
+            make_lineplot(signature_attribution_thresholds, CPs, 'Sensitivity threshold', 'Confidence probability', 'Signature %s' % signature, output_folder + '/CP_curves/signature_%s_curve.pdf' % signature)
 
     for sample in samples:
         for signature in signatures_to_consider:
-            array = signature_attributions_dict[sample][signature]
+            array = attributions_per_sample_dict[sample][signature]
             # disregard attributions consistent with 0
             # if confidence_interval[0]==0:
             # disregard attribution with 0 CI median
             if np.median(array) == 0:
-                signature_attributions_dict[sample][signature] = 0
+                attributions_per_sample_dict[sample][signature] = 0
 
     for sample in samples:
-        signatures_prevalences.loc[sample, :] = signature_attributions_dict[sample].astype(bool).sum(axis=0)
+        signatures_prevalences.loc[sample, :] = attributions_per_sample_dict[sample].astype(bool).sum(axis=0)
         if 'SIM' in dataset_name:
             truth_one_sample_table = truth_attribution_table.loc[sample, :].to_frame().T
             truth_table = truth_one_sample_table.loc[truth_one_sample_table.index.repeat(number_of_b_samples)]
-            stat_scores_tables.loc[sample, :] = calculate_stat_scores(signatures, signature_attributions_dict[sample], truth_table)
+            stat_scores_tables.loc[sample, :] = calculate_stat_scores(signatures, attributions_per_sample_dict[sample], truth_table)
 
 
     signatures_prevalences = signatures_prevalences/number_of_b_samples

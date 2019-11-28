@@ -3,8 +3,11 @@ Common methods module used across different scripts
 """
 import os
 import math
+import json
+import copy
 import warnings
 import numpy as np
+import pandas as pd
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
 
@@ -14,6 +17,50 @@ def make_folder_if_not_exists(folder):
             os.makedirs(folder)
         except:
             warnings.warn("Could not create a folder ", folder)
+
+def write_data_to_JSON(data, JSON_output_file, json_orient = 'columns', indent = True):
+    output_folder = JSON_output_file.rsplit('/',1)[0]
+    make_folder_if_not_exists(output_folder)
+
+    json_ready = False
+    # convert pandas objects to JSON if needed
+    if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series):
+        data_to_save = data.to_json(orient = json_orient)
+        json_ready = True
+    # account for pandas objects in dictionary
+    elif isinstance(data, dict):
+        data_to_save = {}
+        for key, value in data.items():
+            if isinstance(value, pd.DataFrame) or isinstance(value, pd.Series):
+                data_to_save[key] = value.to_json(orient = json_orient)
+            else:
+                data_to_save[key] = value
+    # assume other objects
+    else:
+        data_to_save = copy.deepcopy(data)
+
+    output_file = open(JSON_output_file, 'w')
+
+    if json_ready:
+        output_file.write(data_to_save)
+    else:
+        output_file.write(json.dumps(data_to_save, indent=4 if indent else None, sort_keys = True))
+
+    output_file.close()
+
+def read_data_from_JSON(JSON_input_file, pandas = True, json_orient = 'columns'):
+    input_file = open(JSON_input_file, 'r')
+    input_JSON = ''.join(input_file.readlines())
+    data = json.loads(input_JSON)
+    if pandas:
+        for key, value in data.items():
+            # extract dataframe and convert index/columns to str
+            df = pd.read_json(value, orient = json_orient)
+            df.columns = df.columns.astype(str)
+            df.index = df.index.astype(str)
+            data[key] = df
+    input_file.close()
+    return data
 
 def plot_array_as_histogram(arrays, labels, title, savepath='./hist.pdf'):
     fig = plt.figure()
@@ -34,6 +81,9 @@ def plot_array_as_histogram(arrays, labels, title, savepath='./hist.pdf'):
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
     plt.close()
+
+def calculate_confidence_interval(array, confidence=0.95):
+    return [np.percentile(array, (1-confidence)/2), np.percentile(array, (1-confidence)/2)]
 
 def calculate_similarity(first_sample, second_sample, metric='Cosine'):
     """
