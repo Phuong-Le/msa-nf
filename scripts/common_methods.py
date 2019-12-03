@@ -82,8 +82,8 @@ def plot_array_as_histogram(arrays, labels, title, savepath='./hist.pdf'):
     plt.savefig(savepath, transparent=True)
     plt.close()
 
-def calculate_confidence_interval(array, confidence=0.95):
-    return [np.percentile(array, (1-confidence)/2), np.percentile(array, (1-confidence)/2)]
+def calculate_confidence_interval(array, confidence=95):
+    return [np.percentile(array, (100-confidence)/2), np.percentile(array, (100+confidence)/2)]
 
 def calculate_similarity(first_sample, second_sample, metric='Cosine'):
     """
