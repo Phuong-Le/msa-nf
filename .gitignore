@@ -1,10 +1,13 @@
 .DS_Store
 *#
 *~
+output_tables*
+plots*
+test*
+work
 *.pyc
 logs*
 trace.txt*
 report.html*
 timeline.html*
 .nextflow*
-
