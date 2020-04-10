@@ -49,12 +49,12 @@ if __name__ == '__main__':
     print("*"*50)
     print("Making plots for %s mutation type, %s dataset" % (mutation_type, dataset_name))
 
-    central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_mutations_table.csv' % mutation_type, index_col=0)
-    central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_weights_table.csv' % mutation_type, index_col=0)
-    central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_stat_info.csv' % mutation_type, index_col=0)
-    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/bootstrap_output/output_%s_i_mutations_table.csv' % (mutation_type)
-    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/bootstrap_output/output_%s_i_weights_table.csv' % (mutation_type)
-    bootstrap_stat_table_filename = input_attributions_folder + '/bootstrap_output/output_%s_i_stat_info.csv' % (mutation_type)
+    central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_%s_mutations_table.csv' % (dataset_name, mutation_type), index_col=0)
+    central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_%s_weights_table.csv' % (dataset_name, mutation_type), index_col=0)
+    central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_%s_stat_info.csv' % (dataset_name, mutation_type), index_col=0)
+    bootstrap_attribution_table_abs_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type)
+    bootstrap_attribution_table_weights_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type)
+    bootstrap_stat_table_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_stat_info.csv' % (dataset_name, mutation_type)
 
     if mutation_type == 'SBS':
         if context == 96:
@@ -69,6 +69,7 @@ if __name__ == '__main__':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
     signatures_to_consider = list(central_attribution_table_abs.columns)
+    signatures = signatures[signatures_to_consider]
 
     if args.abs_numbers:
         central_attribution_table = central_attribution_table_abs
