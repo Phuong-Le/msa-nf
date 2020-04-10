@@ -45,16 +45,26 @@ log.info "help:                               ${params.help}"
 }
 
 params.datasets = ['SIM_test']
-params.mutation_types = ['SBS']
+params.mutation_types = ['SBS'] // add DBS/ID if needed
 params.input_tables = "$PWD/input_mutation_tables"
 params.signature_tables = "$PWD/signature_tables"
-params.SBS_context = 96
+params.SBS_context = 96 // 192-context matrices can be provided
+
+// optimisation flag and parameters
 params.optimised = false
+params.weak_threshold = 0.002
+params.strong_threshold = 0.002
+
+// bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
 params.perform_bootstrapping = true
-params.number_of_bootstrapped_samples = 10
-params.NNLS_output_path = "$PWD/output_tables"
-params.plots_output_path = "$PWD/plots"
-// params.signature_prefix = "sigProfiler"
+params.bootstrap_method = "binomial"
+params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
+
+// output paths
+params.NNLS_output_path = "$PWD/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
+params.plots_output_path = "$PWD/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
+
+// signatures to use from signature_tables folder (e.g. sigProfiler, sigRandom)
 params.signature_prefix = "sigRandom"
 
 optimised_flag = (params.optimised) ? "-x" : ''
@@ -67,9 +77,10 @@ process run_NNLS_normal {
   each dataset from params.datasets
 
   output:
-  file("./${dataset}/output_${mutation_type}_mutations_table.csv")
-  file("./${dataset}/output_${mutation_type}_weights_table.csv")
-  file("./${dataset}/output_${mutation_type}_stat_info.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_weights_table.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_stat_info.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_residuals.csv") into central_NNLS_residuals
   set dataset, mutation_type into attribution_for_bootstrap_plots
   set dataset, mutation_type into attribution_for_metrics
   set dataset, mutation_type into attribution_for_tables
@@ -84,7 +95,10 @@ process run_NNLS_normal {
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
   python $PWD/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+                                  -W ${params.weak_threshold} -S ${params.strong_threshold} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
+  cp ${dataset}/output_${dataset}_${mutation_type}_residuals.csv ${params.input_tables}/${dataset}/
+  cp ${dataset}/output_${dataset}_${mutation_type}_fitted_values.csv ${params.input_tables}/${dataset}/
   """
 }
 
@@ -95,11 +109,12 @@ process run_NNLS_bootstrapping {
   each i from 1..params.number_of_bootstrapped_samples
   each mutation_type from params.mutation_types
   each dataset from params.datasets
+  // file residuals from central_NNLS_residuals // uncomment in using residuals bootstrapping
 
   output:
-  file("./${dataset}/bootstrap_output/output_${mutation_type}_${i}_mutations_table.csv")
-  file("./${dataset}/bootstrap_output/output_${mutation_type}_${i}_stat_info.csv")
-  file("./${dataset}/bootstrap_output/output_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_tables
+  file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
+  file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
+  file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_tables
 
   when:
   params.perform_bootstrapping
@@ -107,11 +122,13 @@ process run_NNLS_bootstrapping {
   script:
   """
   python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+                                  --bootstrap_method ${params.bootstrap_method} \
+                                  -W ${params.weak_threshold} -S ${params.strong_threshold} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   mkdir -p ${dataset}/bootstrap_output
-  mv ${dataset}/output_${mutation_type}_mutations_table.csv ${dataset}/bootstrap_output/output_${mutation_type}_${i}_mutations_table.csv
-  mv ${dataset}/output_${mutation_type}_weights_table.csv ${dataset}/bootstrap_output/output_${mutation_type}_${i}_weights_table.csv
-  mv ${dataset}/output_${mutation_type}_stat_info.csv ${dataset}/bootstrap_output/output_${mutation_type}_${i}_stat_info.csv
+  mv ${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv ${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv
+  mv ${dataset}/output_${dataset}_${mutation_type}_weights_table.csv ${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv
+  mv ${dataset}/output_${dataset}_${mutation_type}_stat_info.csv ${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_stat_info.csv
   """
 }
 
