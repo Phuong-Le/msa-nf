@@ -146,9 +146,9 @@ if __name__ == '__main__':
     print("*"*50)
     print("Making plots for %s mutation type, %s dataset" % (mutation_type, dataset_name))
 
-    central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_mutations_table.csv' % mutation_type, index_col=0)
-    central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_weights_table.csv' % mutation_type, index_col=0)
-    central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_stat_info.csv' % mutation_type, index_col=0)
+    central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_%s_mutations_table.csv' % (dataset_name, mutation_type), index_col=0)
+    central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_%s_weights_table.csv' % (dataset_name, mutation_type), index_col=0)
+    central_stat_table = pd.read_csv(input_attributions_folder + '/output_%s_%s_stat_info.csv' % (dataset_name, mutation_type), index_col=0)
 
     if mutation_type=='SBS':
         if context==96:
