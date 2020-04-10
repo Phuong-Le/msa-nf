@@ -9,7 +9,7 @@ from scipy.optimize import nnls
 from scipy.spatial import distance
 from common_methods import make_folder_if_not_exists
 
-def bootstrap_mutation_table(input_dataframe, method="classic"):
+def bootstrap_mutation_table(input_dataframe, method="classic", fitted=None, residuals=None):
     input_mutations = copy.deepcopy(input_dataframe)
     if method=="classic":
         # classic bootstrap (resampling with replacement, i.i.d. assumption)
@@ -18,6 +18,17 @@ def bootstrap_mutation_table(input_dataframe, method="classic"):
         bootstrap_mutations = input_mutations.sample(n=len(input_mutations.index), replace=True)
         # keep the old index (mutation categories)
         bootstrap_mutations.index = original_index
+    elif method=="bootstrap_residuals":
+        # semi-parametric model of bootstrapping residuals
+        # input mutations dataframe is not actually used, as provided fitted
+        # dataframe is added with resampled residuals dataframe
+        if residuals is None:
+            raise ValueError("Residuals are not provided for %s method, please use the residuals flag" % method)
+        elif fitted is None:
+            raise ValueError("Fitted values are not provided for %s method, please use the fitted flag" % method)
+        else:
+            # bootstrap residuals and add them to input mutations
+            return fitted + bootstrap_mutation_table(residuals, method="classic")
     elif method=="poisson":
         # Poisson bootstrap (n>100 and i.i.d. assumption)
         bootstrap_mutations = input_mutations.applymap(lambda x: x*np.random.poisson(1))
@@ -87,7 +98,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
     """
     # Signature optimisation routine starts here
     # calculate the base similarity with an initial set of signatures
-    _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
+    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
     base_similarity = stat_info[-1]
     significant_signatures = copy.deepcopy(initial_signatures)
 
@@ -103,7 +114,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
             signatures_to_run = signatures_to_run.drop(signature, axis=1)
             if verbose:
                 print('Running without signature:', signature)
-            _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
+            _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
             new_similarity = stat_info[-1]
             contribution = base_similarity-new_similarity
             signatures_contribution[signature] = contribution
@@ -130,7 +141,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
             all_weak_signatures_removed = True
 
     # calculate the base similarity again with a given set of significant signatures
-    _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
     base_similarity = stat_info[-1]
 
     # final signatures to update
@@ -156,7 +167,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
             signatures_to_run[signature] = pd.Series(remaining_signatures[signature], index = signatures_to_run.index)
             if verbose:
                 print('Running with signature:', signature)
-            _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
+            _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
             new_similarity = stat_info[-1]
             contribution = new_similarity-base_similarity
             signatures_contribution[signature] = contribution
@@ -214,6 +225,7 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
         The list of normalised weights mentioned above, multiplied by total mutational burden
     stat_info: a list of floats
         A list of statistical info variables, as follows:
+        input_mutational_burden: Total mutational burden of input sample
         rss: residual sum of squares (RSS),
         chi2: Chi-2 of the fit,
         r2: determination coefficient (R2)
@@ -232,7 +244,7 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
 
     # calculate RSS, chi2, r2, similarity metrics
     observed = selected_mutations
-    fitted = np.matmul(signatures.values,weights)
+    fitted = np.matmul(signatures.values, weights)
     residuals = observed - fitted
     chi2 = sum(residuals*residuals/fitted)
 
@@ -242,6 +254,7 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     rss = sum(residuals*residuals)
     r2 = 1-rss/tss
 
+    input_mutational_burden = sum(selected_mutations)
     cosine_similarity = 1 - distance.cosine(observed, fitted)
     correlation = 1 - distance.correlation(observed, fitted)
     chebyshev_similarity = 1 - distance.chebyshev(observed, fitted)
@@ -250,21 +263,21 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     L3_similarity = 1 - distance.minkowski(observed, fitted, p=3)
     jensenshannon_similarity = 1 - distance.jensenshannon(observed, fitted)
 
-    stat_info = [rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]
+    stat_info = [input_mutational_burden, rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]
 
     if verbose:
         if chi2>10e10:
             print('************* High chi2 sample *************')
         print('Signatures:')
         print(signatures.columns.tolist())
-        print('[rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]:',stat_info)
+        print('[input_mutational_burden, rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]:',stat_info)
         print('Observed:', observed)
         print('Sum observed:', np.sum(observed))
         print('Fitted:', fitted)
         print('Sum Fitted:', np.sum(fitted))
         print('Residuals:', residuals)
 
-    return normalised_weights, mutation_numbers, stat_info
+    return normalised_weights, mutation_numbers, fitted, residuals, stat_info
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -347,7 +360,7 @@ if __name__ == '__main__':
     if options.bootstrap:
         print("Perturbing the input mutation sample, bootstrap (simulation) method: %s" % options.bootstrap_method)
 
-    if options.bootstrap:
+    if options.bootstrap and options.bootstrap_method != "bootstrap_residuals":
         input_mutations = bootstrap_mutation_table(input_mutations, method=options.bootstrap_method)
 
     # limit the number of samples to analyse (if specified by -n option)
@@ -369,7 +382,7 @@ if __name__ == '__main__':
 
     output_weights = pd.DataFrame(index=samples, columns=signature_columns_list)
     output_mutations = pd.DataFrame(index=samples, columns=signature_columns_list)
-    output_stat_info = pd.DataFrame(index=samples, columns=['RSS', 'Chi2', 'R2', 'Cosine similarity', 'Chebyshev similarity', 'L1 similarity', 'L2 similarity', 'L3 similarity', 'Jensen-Shannon similarity'])
+    output_stat_info = pd.DataFrame(index=samples, columns=['Mutational burden', 'RSS', 'Chi2', 'R2', 'Cosine similarity', 'Chebyshev similarity', 'L1 similarity', 'L2 similarity', 'L3 similarity', 'Jensen-Shannon similarity'])
 
     output_weights.index.name = output_mutations.index.name = output_stat_info.index.name = 'Sample'
 
@@ -378,6 +391,16 @@ if __name__ == '__main__':
     # sort indexes to prevent signatures/samples mismatch
     input_mutations.sort_index(inplace = True)
     signatures.sort_index(inplace = True)
+
+    # residuals and fitted values dataframes
+    residuals_dataframe = pd.DataFrame(index=input_mutations.index, columns=input_mutations.columns)
+    fitted_dataframe = pd.DataFrame(index=input_mutations.index, columns=input_mutations.columns)
+    if options.bootstrap and options.bootstrap_method=="bootstrap_residuals":
+        # load pre-created residuals and fitted values dataframes (needed for bootstrap)
+        # so far only for SBS 192 context
+        residuals_dataframe = pd.read_csv('%s/%s/output_%s_%s_residuals.csv' % (input_path, dataset_name, dataset_name, mutation_type), index_col=[0,1,2])
+        fitted_dataframe = pd.read_csv('%s/%s/output_%s_%s_fitted_values.csv' % (input_path, dataset_name, dataset_name, mutation_type), index_col=[0,1,2])
+        input_mutations = bootstrap_mutation_table(input_mutations, method=options.bootstrap_method, fitted=fitted_dataframe, residuals=residuals_dataframe)
 
     # print(input_mutations.index.tolist())
     # print(signatures.index.tolist())
@@ -397,11 +420,13 @@ if __name__ == '__main__':
             final_signatures = initial_signatures
 
         if not final_signatures.empty:
-            normalised_weights, mutation_numbers, stat_info = perform_signature_attribution(selected_mutations, final_signatures, verbose=options.verbose)
+            normalised_weights, mutation_numbers, fitted, residuals, stat_info = perform_signature_attribution(selected_mutations, final_signatures, verbose=options.verbose)
             signatures_to_fill = final_signatures.columns
-            output_weights.loc[sample,signatures_to_fill] = normalised_weights
-            output_mutations.loc[sample,signatures_to_fill] = mutation_numbers
+            output_weights.loc[sample, signatures_to_fill] = normalised_weights
+            output_mutations.loc[sample, signatures_to_fill] = mutation_numbers
             output_stat_info.loc[sample] = stat_info
+            residuals_dataframe[sample] = residuals
+            fitted_dataframe[sample] = fitted
 
     end_time = time.process_time()
     process_elapsed_time = end_time - start_time
@@ -413,6 +438,11 @@ if __name__ == '__main__':
     output_stat_info = output_stat_info.fillna(0.0)
 
     # write to files
-    output_weights.to_csv(output_path + '/output_%s_weights_table.csv' % mutation_type)
-    output_mutations.to_csv(output_path + '/output_%s_mutations_table.csv' % mutation_type)
-    output_stat_info.to_csv(output_path + '/output_%s_stat_info.csv' % mutation_type)
+    output_weights.to_csv(output_path + '/output_%s_%s_weights_table.csv' % (dataset_name, mutation_type))
+    output_mutations.to_csv(output_path + '/output_%s_%s_mutations_table.csv' % (dataset_name, mutation_type))
+    output_stat_info.to_csv(output_path + '/output_%s_%s_stat_info.csv' % (dataset_name, mutation_type))
+    residuals_dataframe.to_csv(output_path + '/output_%s_%s_residuals.csv' % (dataset_name, mutation_type))
+    fitted_dataframe.to_csv(output_path + '/output_%s_%s_fitted_values.csv' % (dataset_name, mutation_type))
+    if not options.bootstrap:
+        residuals_dataframe.to_csv('%s/%s/output_%s_%s_residuals.csv' % (input_path, dataset_name, dataset_name, mutation_type))
+        fitted_dataframe.to_csv('%s/%s/output_%s_%s_fitted_values.csv' % (input_path, dataset_name, dataset_name, mutation_type))
