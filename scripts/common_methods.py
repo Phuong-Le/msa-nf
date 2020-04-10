@@ -74,16 +74,16 @@ def plot_array_as_histogram(arrays, labels, title, savepath='./hist.pdf'):
     plt.gca().add_artist(legend)
 
     ax.set_title(title, fontsize=14, pad=10)
-    ax.set_xlabel('Attribution ($\%$)', fontsize=12)
-    ax.set_ylabel('Number of attributions', fontsize=12)
-    ax.set_xticks([0.1*k for k in range(11)])
+    # ax.set_xlabel('Attribution ($\%$)', fontsize=12)
+    # ax.set_ylabel('Number of attributions', fontsize=12)
+    # ax.set_xticks([0.1*k for k in range(11)])
 
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
     plt.close()
 
 def calculate_confidence_interval(array, confidence=95):
-    return [np.percentile(array, (100-confidence)/2), np.percentile(array, (100+confidence)/2)]
+    return np.percentile(array, [(100-confidence)/2, (100+confidence)/2])
 
 def calculate_similarity(first_sample, second_sample, metric='Cosine'):
     """
