@@ -138,14 +138,14 @@ if __name__ == '__main__':
         parser.error("Please specify the input truth (simulated) weights table using -I option.")
 
     if mutation_type=='SBS':
-        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + context + '_' + method + '/output_SBS_weights_table.csv'
+        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + context + '_' + method + '/output_%s_SBS_weights_table.csv' % dataset
                                 for context, method in zip(contexts, methods)]
         truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.' + context + '.weights.csv' for context in contexts]
     elif mutation_type=='DBS':
-        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_DBS_weights_table.csv' for method in methods]
+        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_DBS_weights_table.csv' % dataset for method in methods]
         truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.dinucs.weights.csv'] * len(methods)
     elif mutation_type=='ID':
-        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_ID_weights_table.csv' for method in methods]
+        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_ID_weights_table.csv' % dataset for method in methods]
         truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.indels.weights.csv'] * len(methods)
 
     # add contexts to method names

@@ -92,7 +92,8 @@ def measure_metrics(method):
         for strong_threshold in strong_thresholds:
             reco_table_filename = input_reco_path + '/' + dataset + '_' + \
                 str(context) + '_' + method + '_' + weak_threshold + \
-                '_' + strong_threshold + '/output_SBS_weights_table.csv'
+                '_' + strong_threshold + '/output_%s_SBS_weights_table.csv' % dataset
+            # reco_table_filename = input_reco_path + '/output_tables_' + weak_threshold + '_' + strong_threshold + '/' + dataset + '/output_%s_SBS_weights_table.csv' % dataset
             reco_table = pd.read_csv(reco_table_filename, index_col=0)
 
             # remove missing sigs (some methods pre-filter input signatures)
@@ -127,7 +128,8 @@ def measure_metrics(method):
             if 'NNLS' in method:
                 stat_table_filename = input_reco_path + '/' + dataset + '_' + \
                     str(context) + '_' + method + '_' + weak_threshold + \
-                    '_' + strong_threshold + '/output_SBS_stat_info.csv'
+                    '_' + strong_threshold + '/output_%s_SBS_stat_info.csv' % dataset
+                # stat_table_filename = input_reco_path + '/output_tables_' + weak_threshold + '_' + strong_threshold + '/' + dataset + '/output_%s_SBS_stat_info.csv' % dataset
                 stat_table = pd.read_csv(stat_table_filename, index_col=0)
 
                 rss_table.loc[weak_threshold, strong_threshold] = np.mean(
@@ -194,6 +196,8 @@ if __name__ == '__main__':
     ## ultrafine range (adjust according to input weights tables)
     weak_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
     strong_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
+    # weak_thresholds = ['%.3f' % (0.001 * (i + 1)) for i in range(5)]
+    # strong_thresholds = ['%.3f' % (0.001 * (i + 1)) for i in range(5)]
 
     metrics = ['Cosine', 'Correlation', 'L1', 'L2', 'Chebyshev', 'Jensen-Shannon']
 
