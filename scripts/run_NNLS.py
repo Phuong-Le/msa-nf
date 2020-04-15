@@ -340,8 +340,8 @@ if __name__ == '__main__':
         if context==96:
             signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=[0,1])
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_path, dataset_name, dataset_name, context), sep=None, index_col=[0,1])
-        elif context==192:
-            signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=[0,1,2])
+        elif context in [192, 288]:
+            signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), sep=None, index_col=[0,1,2])
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_path, dataset_name, dataset_name, context), sep=None, index_col=[0,1,2])
         else:
             raise ValueError("Context %i is not supported." % context)

@@ -154,7 +154,7 @@ if __name__ == '__main__':
         if context==96:
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0,1])
             # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1])
-        elif context==192:
+        elif context in [192, 288]:
             input_mutations = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_mutations_folder, dataset_name, dataset_name, context), index_col=[0,1,2])
             # signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1,2])
         else:
