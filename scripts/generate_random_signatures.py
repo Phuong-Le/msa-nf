@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
-from scipy.spatial import distance
+from common_methods import calculate_similarity
 from itertools import combinations
 
 def make_folder_if_not_exists(folder):
@@ -31,26 +31,16 @@ def plot_similarities(input_signatures, method='Cosine', savepath = './similarit
 
     for combination in combinations(signatures_list, 2):
         signature_A, signature_B = combination
-        if 'Jensen-Shannon' in method:
-            similarity = 1 - distance.jensenshannon(data[signature_A], data[signature_B])
-        elif 'Manhattan' in method or 'L1' in method:
-            similarity = 1 - distance.minkowski(data[signature_A], data[signature_B], p=1)
-        elif 'Euclidean' in method or 'L2' in method:
-            similarity = 1 - distance.euclidean(data[signature_A], data[signature_B])
-        elif 'Chebyshev' in method:
-            similarity = 1 - distance.chebyshev(data[signature_A], data[signature_B])
-        elif 'Correlation' in method:
-            similarity = 1 - distance.correlation(data[signature_A], data[signature_B])
-        elif 'Cosine' in method:
-            similarity = 1 - distance.cosine(data[signature_A], data[signature_B])
+        if metric in ['L1', 'L2', 'L3', 'Manhattan', 'manhattan', 'Chebyshev', 'chebyshev']:
+            similarity = calculate_similarity(data[signature_A], data[signature_B], method, normalise=True)
         else:
-            raise ValueError("Unknown method %s" % method)
+            similarity = calculate_similarity(data[signature_A], data[signature_B], method)
         similarities.append(similarity)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    n, bins, patches = plt.hist(similarities, normed=True, bins=20, color='blue', histtype='step')
+    n, bins, patches = plt.hist(similarities, density=True, bins=20, color='blue', histtype='step')
     # fit a Gaussian to input distribution
     (mu, sigma) = stats.norm.fit(similarities)
     y = stats.norm.pdf( bins, mu, sigma)
@@ -107,10 +97,10 @@ if __name__ == '__main__':
             output_filename = '%s/sigRandom_%s_signatures.csv' % (output_path, mutation_type)
             reference_signatures = pd.read_csv('%s/sigProfiler_%s_signatures.csv' %
                                             (signature_tables_path, mutation_type), index_col=[0,1])
-        elif context==192:
-            output_filename = '%s/sigRandom_SBS_192_signatures.csv' % (output_path)
-            reference_signatures = pd.read_csv('%s/sigProfiler_SBS_192_signatures.csv' %
-                                            (signature_tables_path), index_col=[0,1,2])
+        elif context in [192, 288]:
+            output_filename = '%s/sigRandom_SBS_%i_signatures.csv' % (output_path, context)
+            reference_signatures = pd.read_csv('%s/sigProfiler_SBS_%i_signatures.csv' %
+                                            (signature_tables_path, context), index_col=[0,1,2])
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
@@ -143,7 +133,7 @@ if __name__ == '__main__':
         else:
             if context==96:
                 main_category_index_level = 0
-            elif context==192:
+            elif context in [192, 288]:
                 main_category_index_level = 1
             else:
                 raise ValueError("Context %i is not supported." % context)
@@ -163,6 +153,6 @@ if __name__ == '__main__':
 
     # # save dataframes
     generated_signatures.to_csv(output_filename)
-    metrics = ['Jensen-Shannon', 'L1', 'L2', 'Chebyshev', 'Correlation', 'Cosine']
+    metrics = ['Jensen-Shannon', 'L1', 'L2', 'L3', 'Chebyshev', 'Correlation', 'Cosine']
     for metric in metrics:
         plot_similarities(generated_signatures, metric, savepath = output_path + '/similarities/' + metric + '.pdf')
