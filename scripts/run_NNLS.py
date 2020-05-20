@@ -7,7 +7,7 @@ import copy
 import time
 from scipy.optimize import nnls
 from scipy.spatial import distance
-from common_methods import make_folder_if_not_exists
+from common_methods import make_folder_if_not_exists, calculate_similarity
 
 def bootstrap_mutation_table(input_dataframe, method="classic", fitted=None, residuals=None):
     input_mutations = copy.deepcopy(input_dataframe)
@@ -58,7 +58,7 @@ def bootstrap_mutation_table(input_dataframe, method="classic", fitted=None, res
         raise ValueError("Unknown bootstrap method: %s" % method)
     return bootstrap_mutations
 
-def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0.001, strong_threshold=0.001, verbose=False):
+def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0.001, strong_threshold=0.001, similarity_index=-3, verbose=False):
     """
     Perform signature optimisation for NNLS attribution method.
     The method is outlined in the PCAWG paper, with the main idea as follows:
@@ -99,7 +99,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
     # Signature optimisation routine starts here
     # calculate the base similarity with an initial set of signatures
     _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
-    base_similarity = stat_info[-1]
+    base_similarity = stat_info[similarity_index]
     significant_signatures = copy.deepcopy(initial_signatures)
 
     # a loop to remove all weak signatures
@@ -115,7 +115,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
             if verbose:
                 print('Running without signature:', signature)
             _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
-            new_similarity = stat_info[-1]
+            new_similarity = stat_info[similarity_index]
             contribution = base_similarity-new_similarity
             signatures_contribution[signature] = contribution
 
@@ -142,7 +142,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
 
     # calculate the base similarity again with a given set of significant signatures
     _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
-    base_similarity = stat_info[-1]
+    base_similarity = stat_info[similarity_index]
 
     # final signatures to update
     final_signatures = copy.deepcopy(significant_signatures)
@@ -168,7 +168,7 @@ def optimise_signatures(selected_mutations, initial_signatures, weak_threshold=0
             if verbose:
                 print('Running with signature:', signature)
             _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
-            new_similarity = stat_info[-1]
+            new_similarity = stat_info[similarity_index]
             contribution = new_similarity-base_similarity
             signatures_contribution[signature] = contribution
 
@@ -255,13 +255,13 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     r2 = 1-rss/tss
 
     input_mutational_burden = sum(selected_mutations)
-    cosine_similarity = 1 - distance.cosine(observed, fitted)
-    correlation = 1 - distance.correlation(observed, fitted)
-    chebyshev_similarity = 1 - distance.chebyshev(observed, fitted)
-    L1_similarity = 1 - distance.minkowski(observed, fitted, p=1)
-    L2_similarity = 1 - distance.euclidean(observed, fitted)
-    L3_similarity = 1 - distance.minkowski(observed, fitted, p=3)
-    jensenshannon_similarity = 1 - distance.jensenshannon(observed, fitted)
+    cosine_similarity = calculate_similarity(observed, fitted)
+    correlation = calculate_similarity(observed, fitted, metric='Correlation')
+    chebyshev_similarity = calculate_similarity(observed, fitted, metric='Chebyshev', normalise = True)
+    L1_similarity = calculate_similarity(observed, fitted, metric='L1', normalise = True)
+    L2_similarity = calculate_similarity(observed, fitted, metric='L2', normalise = True)
+    L3_similarity = calculate_similarity(observed, fitted, metric='L3', normalise = True)
+    jensenshannon_similarity = calculate_similarity(observed, fitted, metric='jensen-shannon')
 
     stat_info = [input_mutational_burden, rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]
 
@@ -388,9 +388,10 @@ if __name__ == '__main__':
 
     start_time = time.process_time()
 
-    # sort indexes to prevent signatures/samples mismatch
-    input_mutations.sort_index(inplace = True)
-    signatures.sort_index(inplace = True)
+    # align indexes to prevent signatures/samples mismatch
+    # input_mutations.sort_index(inplace = True)
+    # signatures.sort_index(inplace = True)
+    input_mutations = input_mutations.reindex(signatures.index)
 
     # residuals and fitted values dataframes
     residuals_dataframe = pd.DataFrame(index=input_mutations.index, columns=input_mutations.columns)
