@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from common_methods import make_folder_if_not_exists, read_data_from_JSON, calculate_stat_scores, calculate_confidence_interval
+from common_methods import make_folder_if_not_exists, read_data_from_JSON
 matplotlib.use("agg")
 
 def make_lineplot(x_values, y_values, xlabel, ylabel, title='', savepath="./lineplot.pdf"):
@@ -23,11 +23,16 @@ def make_lineplot(x_values, y_values, xlabel, ylabel, title='', savepath="./line
 
     plt.scatter(x_values, y_values)
     plt.plot(x_values, y_values, color='r', linestyle='--')
+    # Add a grid to the plot
+    ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+    ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+    # Add a red line at 0.95
+    plt.axhline(y=0.95, color='r', linestyle='-')
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
     plt.close()
 
-def make_boxplot(input_table, title, xlabel, ylabel, show_mean=False, ylim_zero_to_one=True, savepath="./boxplot.pdf"):
+def make_boxplot(input_table, title, xlabel, ylabel, show_mean=False, ylim_zero_to_one=True, add_jitter = False, savepath="./boxplot.pdf"):
     make_folder_if_not_exists(savepath.rsplit('/', 1)[0])
 
     table = copy.deepcopy(input_table)
@@ -38,12 +43,23 @@ def make_boxplot(input_table, title, xlabel, ylabel, show_mean=False, ylim_zero_
     ax.set_title(title, fontsize=14, pad=10)
     ax.set_xlabel(xlabel, size=12)
     ax.set_ylabel(ylabel, size=12)
-    ax.tick_params(axis='x', rotation=90)
+    ax.tick_params(axis='y', which='minor', bottom=False)
     if ylim_zero_to_one:
         ax.set_ylim(0, 1.05)
         plt.axhline(y=1, color='r', linestyle='--')
+        plt.axhline(y=0.95, color='g', linestyle='--')
     table.boxplot(column=columns, ax=ax, grid=False, return_type='axes', sym='.',
                   meanline=show_mean, showmeans=show_mean, boxprops=dict(linewidth=3))
+    if add_jitter:
+        for i, d in enumerate(table):
+            y = table[d]
+            x = np.random.normal(i+1, 0.04, len(y))
+            plt.plot(x, y, mec='k', ms=3, marker="o", linestyle="None")
+
+    plt.xticks(rotation=90)
+    # Add a horizontal grid to the plot
+    ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
+    plt.minorticks_on()
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
     plt.close()
@@ -167,8 +183,6 @@ if __name__ == '__main__':
         elif mutation_type == 'ID':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
 
-    signatures_to_consider = list(central_attribution_table_abs.columns)
-
     central_attribution_table = central_attribution_table_weights
     colormap_label = 'Relative contribution'
     filename = 'bootstrap_plot_weights'
@@ -192,98 +206,45 @@ if __name__ == '__main__':
     samples = central_attribution_table.index.to_list()
     signatures_to_consider = list(central_attribution_table_abs.columns)
 
-    # read dictionaries from JSON files produced by make_bootstrap_tables.py script
-    common_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
-    attributions_per_sample_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_sample" + common_filename_suffix)
+    # # read dictionaries from JSON files produced by make_bootstrap_tables.py script
+    # common_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
+    # attributions_per_sample_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_sample" + common_filename_suffix)
     # attributions_per_signature_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_signature" + common_filename_suffix)
-    number_of_b_samples = len(next(iter(attributions_per_sample_dict.values())).index)
+    # number_of_b_samples = len(next(iter(attributions_per_sample_dict.values())).index)
 
+    # # read confidence confidence intervals
+    # confidence_intervals = pd.read_csv(input_attributions_folder + 'CIs' + common_filename_suffix.replace('json','csv'), index_col=0)
+    # confidence_intervals.columns = confidence_intervals.columns.astype(str)
+    # confidence_intervals.index = confidence_intervals.index.astype(str)
+
+    # read truth-related dataframes and dictionaries of calculated variables
     if 'SIM' in dataset_name:
-        acting_signatures = []
-        for signature in list(truth_attribution_table.columns):
-            if truth_attribution_table[signature].max() > 0:
-                acting_signatures.append(signature)
-
-    stat_scores_tables = pd.DataFrame(index=central_attribution_table.index, columns=scores, dtype=float)
-    signatures_prevalences = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
-    if 'SIM' in dataset_name:
-        signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
-        truth_and_measured_difference = pd.DataFrame(0, index=central_attribution_table.index, columns=['Truth - mean', 'Truth - median', 'Truth - NNLS'], dtype=float)
-
-    # calculate signature CPs
-    if 'SIM' in dataset_name:
-        for sample in samples:
-            for signature in signatures_to_consider:
-                array = attributions_per_sample_dict[sample][signature]
-                confidence_interval = calculate_confidence_interval(array)
-                if signature in acting_signatures:
-                    if confidence_interval[0] <= truth_attribution_table.loc[sample, signature] <= confidence_interval[1]:
-                        signatures_CPs.loc[sample, signature] = 1
-                    else:
-                        signatures_CPs.loc[sample, signature] = 0
-                else:
-                    if confidence_interval[0] <= truth_attribution_table.loc[sample, signature] <= confidence_interval[1]:
-                        signatures_CPs.loc[sample, 'Others'] = 1
-                    else:
-                        signatures_CPs.loc[sample, 'Others'] = 0
-
-                # fill residuals dataframe
-                truth_and_measured_difference.loc[sample, 'Truth - mean'] += np.abs(truth_attribution_table.loc[sample, signature] - np.mean(array))
-                truth_and_measured_difference.loc[sample, 'Truth - median'] += np.abs(truth_attribution_table.loc[sample, signature] - np.median(array))
-                truth_and_measured_difference.loc[sample, 'Truth - NNLS'] += np.abs(truth_attribution_table.loc[sample, signature] - central_attribution_table.loc[sample, signature])
-
-
-    # calculate CPs for a range of sensitivity thresholds for each sig
-    if 'SIM' in dataset_name:
-        signature_attribution_thresholds = [0.01 * i for i in range(20)]
-        signatures_CPs_dict = {}
-        for threshold in signature_attribution_thresholds:
-            signatures_CPs_dict[threshold] = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
-            for sample in samples:
-                for signature in signatures_to_consider:
-                    array = attributions_per_sample_dict[sample][signature]
-                    confidence_interval = calculate_confidence_interval(array)
-                    # increase upper bound of CI if less than threshold
-                    if confidence_interval[0] == 0 and confidence_interval[1] < threshold:
-                        confidence_interval[1] = threshold
-                    if confidence_interval[0] <= truth_attribution_table.loc[sample, signature] <= confidence_interval[1]:
-                        signatures_CPs_dict[threshold].loc[sample, signature] = 1
-                    # elif confidence_interval[0] > 0 and confidence_interval[1] > 0 and truth_attribution_table.loc[sample, signature] > 0:
-                    #     # this case includes cases when CI is not consistent with 0, signature is simulated but CI does not contain the true value
-                    #     signatures_CPs_dict[threshold].loc[sample, signature] = 1
-                    else:
-                        signatures_CPs_dict[threshold].loc[sample, signature] = 0
-            # normalise to calculate CPs
-            signatures_CPs_dict[threshold] = signatures_CPs_dict[threshold].sum(axis=0).to_frame().T.div(len(samples))
+        truth_and_measured_difference = pd.read_csv(input_attributions_folder + '/truth_studies/truth_and_measured_difference_' + mutation_type + '.csv', index_col=0)
+        signatures_CPs = pd.read_csv(input_attributions_folder + '/truth_studies/signatures_CPs_' + mutation_type + '.csv', index_col=0)
+        sensitivity_thresholds = pd.read_csv(input_attributions_folder + '/truth_studies/sensitivity_thresholds_' + mutation_type + '.csv', index_col=0)
+        stat_scores_from_CI_tables = pd.read_csv(input_attributions_folder + '/truth_studies/stat_scores_from_CI_tables_' + mutation_type + '.csv', index_col=0)
+        signatures_CPs_dict = read_data_from_JSON(input_attributions_folder + '/truth_studies/signatures_CPs_dict_' + mutation_type + '.json')
+        signatures_scores = read_data_from_JSON(input_attributions_folder + '/truth_studies/signatures_scores_' + mutation_type + '.json')
+        stat_scores_from_CI_per_sig = read_data_from_JSON(input_attributions_folder + '/truth_studies/stat_scores_from_CI_per_sig_' + mutation_type + '.json')
 
     # plot sensitivity threshold vs CP plot for each sig
     if 'SIM' in dataset_name:
         for signature in signatures_to_consider:
+            signature_attribution_thresholds = sorted(signatures_CPs_dict.keys())
             CPs = [signatures_CPs_dict[threshold][signature][0] for threshold in signature_attribution_thresholds]
-            make_lineplot(signature_attribution_thresholds, CPs, 'Sensitivity threshold', 'Confidence probability', 'Signature %s' % signature, output_folder + '/CP_curves/signature_%s_curve.pdf' % signature)
+            make_lineplot(signature_attribution_thresholds, CPs, 'Sensitivity threshold', 'Confidence probability', 'Signature %s' % signature, output_folder + '/truth_studies/CP_curves/signature_%s_curve.pdf' % signature)
 
-    for sample in samples:
-        for signature in signatures_to_consider:
-            array = attributions_per_sample_dict[sample][signature]
-            # disregard attributions consistent with 0
-            # if confidence_interval[0]==0:
-            # disregard attribution with 0 CI median
-            if np.median(array) == 0:
-                attributions_per_sample_dict[sample][signature] = 0
-
-    for sample in samples:
-        signatures_prevalences.loc[sample, :] = attributions_per_sample_dict[sample].astype(bool).sum(axis=0)
-        if 'SIM' in dataset_name:
-            truth_one_sample_table = truth_attribution_table.loc[sample, :].to_frame().T
-            truth_table = truth_one_sample_table.loc[truth_one_sample_table.index.repeat(number_of_b_samples)]
-            stat_scores_tables.loc[sample, :] = calculate_stat_scores(signatures, attributions_per_sample_dict[sample], truth_table)
-
-
-    signatures_prevalences = signatures_prevalences/number_of_b_samples
+    signatures_prevalences = pd.read_csv(input_attributions_folder + '/signatures_prevalences_' + mutation_type + '.csv', index_col=0)
     make_boxplot(signatures_prevalences, 'Signature prevalence (%s)' % mutation_type, 'Signatures', 'Reconstructed (%)', savepath=output_folder + '/signature_prevalences.pdf')
 
     if 'SIM' in dataset_name:
-        signatures_CPs = signatures_CPs.sum(axis=0).to_frame().T.div(len(samples))
-        make_boxplot(signatures_CPs, 'Confidence probability (%s)' % mutation_type, 'Signatures', 'CP (%)', savepath=output_folder + '/signature_confidence_probabilities.pdf')
-        make_boxplot(stat_scores_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath=output_folder + '/sensitivity_specificity_metrics.pdf')
-        make_boxplot(truth_and_measured_difference, 'Truth and measured difference (%s)' % mutation_type, '', 'Difference abs. sum', ylim_zero_to_one=False, savepath=output_folder + '/truth_and_measured_difference.pdf')
+        make_boxplot(signatures_CPs, 'Confidence probability (%s)' % mutation_type, 'Signatures', 'CP (%)', savepath=output_folder + '/truth_studies/signature_confidence_probabilities.pdf')
+        make_boxplot(sensitivity_thresholds, 'Sensitivity thresholds (%s)' % mutation_type, 'Signatures', 'Threshold (%)', ylim_zero_to_one = False, savepath=output_folder + '/truth_studies/sensitivity_thresholds.pdf')
+        # make_boxplot(stat_scores_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath=output_folder + '/sensitivity_specificity_metrics.pdf')
+        make_boxplot(stat_scores_from_CI_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath=output_folder + '/truth_studies/sensitivity_specificity_from_CI_metrics.pdf')
+        for signature in signatures_to_consider:
+            # make_boxplot(stat_scores_per_sig[signature], 'Signature %s metrics (%s)' % (signature, mutation_type), 'Metrics', 'Values', savepath=output_folder + '/per_signature_metrics/%s_metrics.pdf' % signature)
+            make_boxplot(stat_scores_from_CI_per_sig[signature], 'Signature %s metrics (%s)' % (signature, mutation_type), 'Metrics', 'Values', savepath=output_folder + '/truth_studies/per_signature_from_CI_metrics/%s_metrics.pdf' % signature)
+        for score in scores:
+            make_boxplot(signatures_scores[score], '%s (%s)' % (score, mutation_type), 'Signatures', 'Values', savepath=output_folder + '/truth_studies/signature_%s.pdf' % score)
+        make_boxplot(truth_and_measured_difference, 'Truth and measured difference (%s)' % mutation_type, '', 'Difference', ylim_zero_to_one=False, add_jitter = True, savepath=output_folder + '/truth_studies/truth_and_measured_difference.pdf')
