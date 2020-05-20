@@ -50,7 +50,7 @@ def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total'
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    n, bins, patches = plt.hist(mutational_burden, normed=True, bins=20, color='blue', histtype='step')
+    n, bins, patches = plt.hist(mutational_burden, density=True, bins=20, color='blue', histtype='step')
     if mu and sigma:
         # create a Gaussian with given mu and sigma
         y = 1/(sigma * np.sqrt(2 * np.pi)) * np.exp( - (bins - mu)**2 / (2 * sigma**2) )
@@ -98,6 +98,10 @@ if __name__ == '__main__':
                       help="Use randomly generated signatures instead of PCAWG reference ones")
     parser.add_option("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type='int',
                       help="Number of random signatures to consider")
+    parser.add_option("-B", "--bootstrap_input_mutation_table", dest="bootstrap_input_mutation_table", action="store_true",
+                      help="Bootstrap (reshuffle with replacement) the input mutation table instead if using signatures")
+    parser.add_option("-i", "--input_table", dest="input_table", default='',
+                      help="set path to input mutation table to bootstrap")
     (options, args) = parser.parse_args()
 
     mutation_type = options.mutation_type
@@ -126,9 +130,9 @@ if __name__ == '__main__':
         if context==96:
             reference_signatures = pd.read_csv('%s/%s_%s_signatures.csv' %
                                             (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1])
-        elif context==192:
-            reference_signatures = pd.read_csv('%s/%s_%s_192_signatures.csv' %
-                                            (signature_tables_path, signatures_prefix, mutation_type), index_col=[0,1,2])
+        elif context in [192, 288]:
+            reference_signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' %
+                                            (signature_tables_path, signatures_prefix, mutation_type, context), index_col=[0,1,2])
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
@@ -140,35 +144,49 @@ if __name__ == '__main__':
         reference_signatures = pd.read_csv('%s/%s_%s_signatures.csv' %
                                             (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
+    for signature in reference_signatures.columns:
+        if not np.isclose(reference_signatures.sum()[signature], 1, rtol=1e-3):
+            raise ValueError("Probabilities for signature %s do not add up to 1." % signature)
+
     generated_signature_burdens = {}
-    if random_signatures:
-        random_signature_indexes = random.sample(reference_signatures.columns.to_list(), number_of_random_sigs)
-        for random_sig in random_signature_indexes:
-            mu = np.random.normal(2000, 1000)
-            sigma = np.random.normal(500, 100)
-            mu = mu if mu>=0 else 0
-            sigma = sigma if sigma>=0 else 0
-            # draw burdens from normal distribution
-            generated_burdens = np.random.normal(mu, sigma, number_of_samples)
-            # replace negative values of the Gaussian with zeros
-            generated_burdens[generated_burdens<0] = 0
-            # plot the generated burden
-            plot_mutational_burden(generated_burdens, mu, sigma, random_sig,
-                                savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, random_sig))
-            generated_signature_burdens[random_sig] = generated_burdens
+    if options.bootstrap_input_mutation_table:
+        if not options.input_table:
+            parser.error("Please provide the input mutation table for bootstrap with -i option.")
+        input_table = pd.read_csv(options.input_table, index_col=0, sep=None)
+        bootstrapped_table = input_table.sample(n=number_of_samples, replace=True)
+        for signature in input_table.columns:
+            generated_signature_burdens[signature] = bootstrapped_table[signature].to_numpy()
+            plot_mutational_burden(generated_signature_burdens[signature], title=signature,
+            savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
     else:
-        # generate burdens for each signature from the 'signatures_to_generate' dictionary
-        for signature in signatures_to_generate.keys():
-            mu = signatures_to_generate[signature][0]
-            sigma = signatures_to_generate[signature][1]
-            # draw burdens from normal distribution
-            generated_burdens = np.random.normal(mu, sigma, number_of_samples)
-            # replace negative values of the Gaussian with zeros
-            generated_burdens[generated_burdens<0] = 0
-            # plot the generated burden
-            plot_mutational_burden(generated_burdens, mu, sigma, signature,
-                                savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
-            generated_signature_burdens[signature] = generated_burdens
+        if random_signatures:
+            random_signature_indexes = random.sample(reference_signatures.columns.to_list(), number_of_random_sigs)
+            for random_sig in random_signature_indexes:
+                mu = np.random.normal(2000, 1000)
+                sigma = np.random.normal(500, 100)
+                mu = mu if mu>=0 else 0
+                sigma = sigma if sigma>=0 else 0
+                # draw burdens from normal distribution
+                generated_burdens = np.random.normal(mu, sigma, number_of_samples)
+                # replace negative values of the Gaussian with zeros
+                generated_burdens[generated_burdens<0] = 0
+                # plot the generated burden
+                plot_mutational_burden(generated_burdens, mu, sigma, random_sig,
+                                    savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, random_sig))
+                generated_signature_burdens[random_sig] = generated_burdens
+        else:
+            # generate burdens for each signature from the 'signatures_to_generate' dictionary
+            for signature in signatures_to_generate.keys():
+                mu = signatures_to_generate[signature][0]
+                sigma = signatures_to_generate[signature][1]
+                # draw burdens from normal distribution
+                generated_burdens = np.random.normal(mu, sigma, number_of_samples)
+                # replace negative values of the Gaussian with zeros
+                generated_burdens[generated_burdens<0] = 0
+                # plot the generated burden
+                plot_mutational_burden(generated_burdens, mu, sigma, signature,
+                                    savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
+                generated_signature_burdens[signature] = generated_burdens
 
     samples_range = range(0,number_of_samples)
 
