@@ -1,5 +1,6 @@
-""" measure_bootstrap_sensitivity_specificity.py
-Module to measure and plot bootstrap sensitivity, specificity and other metrics
+""" plot_metrics.py
+Module to plot various metrics such as sensitivity, specificity (if simulated data) and other metrics
+Only signature prevalences are plotted on non-simulated data.
 """
 
 from argparse import ArgumentParser

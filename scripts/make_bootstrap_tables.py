@@ -1,3 +1,7 @@
+""" make_bootstrap_tables.py
+Module make the bootstrap tables as well as calculate various metrics and scores in case of simulated data
+"""
+
 from argparse import ArgumentParser
 import copy
 import numpy as np

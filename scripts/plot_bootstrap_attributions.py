@@ -1,3 +1,7 @@
+""" plot_bootstrap_attributions.py
+Module to plot attributions with CIs on per-sample and per-signature basis.
+"""
+
 from argparse import ArgumentParser
 import copy
 import numpy as np
