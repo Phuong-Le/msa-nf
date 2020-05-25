@@ -52,8 +52,8 @@ params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SB
 params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
 
 // plotting flags
-params.plot_signatures = false
-params.plot_input_spectra = false
+params.plot_signatures = true
+params.plot_input_spectra = true
 params.plot_fitted_spectra = true
 params.plot_residuals = true
 params.show_poisson_errors = true
