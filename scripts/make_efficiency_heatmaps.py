@@ -1,11 +1,13 @@
-from optparse import OptionParser
+import argparse
 import os
 import copy
 import pandas as pd
 import numpy as np
 import seaborn as sns
+import matplotlib
 import matplotlib.pyplot as plt
 from common_methods import make_folder_if_not_exists, calculate_similarity, calculate_stat_scores
+matplotlib.use("agg")
 
 def make_heatmap_plot(input_table, title='', x_label='', y_label='', colormap_label='', savepath="./heatmap_test.pdf", cmap='YlGnBu'):
     table = copy.deepcopy(input_table)
@@ -17,7 +19,7 @@ def make_heatmap_plot(input_table, title='', x_label='', y_label='', colormap_la
         annotation_text_size = 8
     else:
         annotation_format = ".2g"
-        annotation_text_size = 10
+        annotation_text_size = 6
 
     if 'diff' in colormap_label:
         min_matrix = table.values.min()
@@ -165,37 +167,46 @@ def measure_metrics(method):
 
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-t", "--mutation_type", dest="mutation_type", default='SBS',
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='SBS',
                       help="set mutation type (SBS, DBS, ID)")
-    parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
+    parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
-    parser.add_option("-c", "--context", dest="context", default=96, type='int',
-                      help="set SBS context (96, 192, 1536)")
-    parser.add_option("-m", "--method", dest="method", default='NNLS',
+    parser.add_argument("-c", "--context", dest="context", default=96, type=int,
+                      help="set SBS context (96, 192, 288, 1536)")
+    parser.add_argument("-m", "--method", dest="method", default='NNLS',
                       help="set the method name (e.g. 'NNLS')")
-    parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
+    parser.add_argument("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
                       help="set path to input reconstructed weights tables")
-    parser.add_option("-I", "--input_truth_path", dest="input_truth_path", default='input_mutation_tables/SIM/',
+    parser.add_argument("-I", "--input_truth_path", dest="input_truth_path", default='input_mutation_tables/SIM/',
                       help="set path to input truth (simulated) weights tables")
-    parser.add_option("-o", "--output_path", dest="output_path", default='efficiency_plots/',
+    parser.add_argument("-o", "--output_path", dest="output_path", default='efficiency_plots/',
                       help="set path to save output plots")
-    parser.add_option("-s", "--suffix", dest="suffix", default='',
+    parser.add_argument("-s", "--suffix", dest="suffix", default='',
                       help="set a suffix to add to plot names")
-    parser.add_option("-n", "--number", dest="number_of_samples", default=-1, type='int',
+    parser.add_argument("-n", "--number", dest="number_of_samples", default=-1, type=int,
                       help="set the number of samples to consider (all by default)")
-    (options, args) = parser.parse_args()
+    parser.add_argument("-W", "--weak_thresholds", nargs='+', dest="weak_thresholds",
+                      help="set the list of weak thresholds")
+    parser.add_argument("-S", "--strong_thresholds", nargs='+', dest="strong_thresholds",
+                      help="set the list of strong thresholds")
+    args = parser.parse_args()
 
-    mutation_type = options.mutation_type
-    dataset = options.dataset_name
-    input_reco_path = options.input_reco_path
-    input_truth_path = options.input_truth_path
-    method = options.method
-    context = options.context
+    mutation_type = args.mutation_type
+    dataset = args.dataset_name
+    input_reco_path = args.input_reco_path
+    input_truth_path = args.input_truth_path
+    method = args.method
+    context = args.context
 
+    weak_thresholds = args.weak_thresholds
+    strong_thresholds = args.strong_thresholds
+    
+    if not weak_thresholds or not strong_thresholds:
+        raise ValueError("Please specify the lists of thresholds.")
     ## ultrafine range (adjust according to input weights tables)
-    weak_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
-    strong_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
+    # weak_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
+    # strong_thresholds = ['%.4f' % (0.0010 * (i + 1)) for i in range(10)]
     # weak_thresholds = ['%.3f' % (0.001 * (i + 1)) for i in range(5)]
     # strong_thresholds = ['%.3f' % (0.001 * (i + 1)) for i in range(5)]
 
@@ -204,8 +215,8 @@ if __name__ == '__main__':
     if mutation_type != 'SBS':
         raise ValueError("Unsupported mutation type: %s. Please use SBS." % mutation_type)
 
-    output_path = options.output_path
-    number_of_samples = options.number_of_samples
+    output_path = args.output_path + '/' + dataset
+    number_of_samples = args.number_of_samples
 
     make_folder_if_not_exists(output_path)
 
@@ -236,8 +247,8 @@ if __name__ == '__main__':
     for metric in metrics:
         heatmap_savepath = output_path + '/heatmap_' + str(context) + '_' + method + '_' + metric + '.pdf'
         colormap_label = 'Similarity to truth'
-        if options.suffix:
-            heatmap_savepath = heatmap_savepath.replace('.pdf', '_%s.pdf' % options.suffix)
+        if args.suffix:
+            heatmap_savepath = heatmap_savepath.replace('.pdf', '_%s.pdf' % args.suffix)
         # print(metric, similarity_tables[metric])
         make_heatmap_plot(similarity_tables[metric], title=metric + ' metric (%i context, %s)' % (context, method.replace('_', ' ')), x_label='Strong threshold',
                       y_label='Weak threshold', colormap_label=colormap_label, savepath=heatmap_savepath)

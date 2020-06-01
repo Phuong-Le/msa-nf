@@ -353,8 +353,8 @@ if __name__ == '__main__':
 
     if args.non_transcribed and not args.strand_bias:
         raise ValueError("Non-transcribed option must be used together with strand bias option (-b).")
-    elif args.non_transcribed and context==96:
-        raise ValueError("Non-transcribed region information is not available in 96 context." % mutation_type)
+    elif args.non_transcribed and not context in [288, 384]:
+        raise ValueError("Non-transcribed region information is not available in %i context." % context)
 
     if args.plot_residuals_histograms and not args.plot_residuals:
         raise ValueError("Residuals histograms (-H) option must be used together with residuals option (-R).")

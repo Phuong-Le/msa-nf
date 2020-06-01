@@ -63,7 +63,7 @@ def remove_weak_signatures(selected_mutations, initial_signatures, weak_threshol
     Perform a loop to remove all weak signatures with given penalty (weak_threshold).
     The NNLS is intially applied on a given input set of signatures and mutations.
     The similarity of the reconstructed profile (linear combination of input signatures)
-    to the initial sample is calculated, called base similarity (last column in stat_info dataframe).
+    to the initial sample is calculated, called base similarity (column with index similarity_index in stat_info dataframe).
     The actual loop to remove weak signatures is executed, in which all signatures that decrease the
     similarity by less than a given threshold (weak_threshold) are removed.
     The output is the final list of remaining signatures.
@@ -151,7 +151,7 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
     Perform a loop to remove all weak signatures with given penalty (weak_threshold).
     The NNLS is intially applied on a given input set of signatures and mutations.
     The similarity of the reconstructed profile (linear combination of input signatures)
-    to the initial sample is calculated, called base similarity (last column in stat_info dataframe).
+    to the initial sample is calculated, called base similarity (column with index similarity_index in stat_info dataframe).
     The actual loop to add strong signatures is executed, in which all excluded so far signatures
     that increase the similarity by more than a given threshold (strong_threshold) are included again.
     The output is the final list of remaining signatures.
@@ -250,14 +250,14 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
 
     return significant_signatures, final_similarity
 
-def optimise_signatures(selected_mutations, initial_signatures, all_available_signatures, weak_threshold=0.001, strong_threshold=0.001, similarity_index=-3, verbose=False):
+def optimise_signatures(selected_mutations, initial_signatures, all_available_signatures, weak_threshold=0.01, strong_threshold=0.05, similarity_index=-3, loops_limit=100, verbose=False):
     """
     Perform signature optimisation for NNLS attribution method.
     The method is outlined in the PCAWG paper, with the main idea as follows:
     The NNLS is intially applied on a given input set of signatures and mutations.
     The similarity of the reconstructed profile (linear combination of input signatures)
-    to the initial sample is calculated, called base similarity (last column in stat_info dataframe).
-    Afterwards, a loop of addition and removal of signatures is executed, with set penalties.
+    to the initial sample is calculated, called base similarity (column with index similarity_index in stat_info dataframe).
+    Afterwards, a loop of addition and removal of signatures is executed, with set penalties, until convergence is reached.
     The output is the final list of remaining signatures.
 
     Parameters:
@@ -280,8 +280,11 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
     strong_threshold: float
         Similarity increase threshold to include strongest signatures (default: 0.05)
 
-    similarity_index: into
+    similarity_index: int
         Index of the similarity metric (e.g. 3rd from the end of stat_info column list: -3)
+
+    loops_limit: int
+        Maximum number of iterations. If reached, optimisation is finished (default: 100).
 
     verbose: boolean
         Verbosity flag: lots of output for debugging if set to True
@@ -304,18 +307,23 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
         print('Initial (base) similarity:', base_similarity)
 
     # Signature optimisation routine starts here
-    new_similarity = 1e9
+    convergence_delta = 1
+    converging_similarity = None
     loops = 0
-    while abs(new_similarity-base_similarity)>min(strong_threshold, weak_threshold):
+    while convergence_delta>0 and loops<loops_limit:
         loops += 1
-        base_similarity = new_similarity
-        significant_signatures, new_similarity = add_strong_signatures(selected_mutations, significant_signatures, all_available_signatures,
+        if converging_similarity:
+            base_similarity = converging_similarity
+        significant_signatures, converging_similarity = add_strong_signatures(selected_mutations, significant_signatures, all_available_signatures,
                                                     strong_threshold = strong_threshold, similarity_index = similarity_index, verbose = verbose)
-        significant_signatures, new_similarity = remove_weak_signatures(selected_mutations, significant_signatures,
+        significant_signatures, converging_similarity = remove_weak_signatures(selected_mutations, significant_signatures,
                                                     weak_threshold = weak_threshold, similarity_index = similarity_index, verbose = verbose)
+        convergence_delta = abs(converging_similarity-base_similarity)
+        if loops >= loops_limit:
+            warnings.warn("Maximum number of iterations (%i) reached, stopping optimisation." % loops_limit)
         if verbose:
             print('Loop', loops, 'done.')
-            print('Convergence: ', abs(new_similarity-base_similarity))
+            print('Convergence delta: ', convergence_delta)
 
     final_signatures = significant_signatures
 
@@ -323,7 +331,7 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
         print('Number of loops:', loops)
         print('Final set of signatures:')
         print(final_signatures.columns.tolist())
-        print('Final similarity:', new_similarity)
+        print('Final similarity:', converging_similarity)
 
     return final_signatures
 
@@ -425,10 +433,10 @@ if __name__ == '__main__':
                       help="set path to save output tables")
     parser.add_option("-x", "--optimise_signatures", dest="optimise_signatures", action="store_true",
                       help="perform signature optimisation (remove weak signature, add strong ones)")
-    parser.add_option("-W", "--weak_threshold", dest="weak_threshold", default=0.002, type='float',
-                      help="Similarity decrease threshold to exclude weakest signatures in optimisation (default: 0.001)")
-    parser.add_option("-S", "--strong_threshold", dest="strong_threshold", default=0.002, type='float',
-                      help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.001)")
+    parser.add_option("-W", "--weak_threshold", dest="weak_threshold", default=0.01, type='float',
+                      help="Similarity decrease threshold to exclude weakest signatures in optimisation (default: 0.01)")
+    parser.add_option("-S", "--strong_threshold", dest="strong_threshold", default=0.01, type='float',
+                      help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.05)")
     parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name (SIM by default)")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
