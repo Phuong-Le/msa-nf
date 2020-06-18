@@ -153,8 +153,8 @@ def calculate_similarity(first_sample, second_sample, metric='Cosine', normalise
             second_sample = second_sample/np.linalg.norm(second_sample, ord=np.inf)
         else:
             # consider L2 norm
-            first_sample = first_sample/np.linalg.norm(first_sample)
-            second_sample = second_sample/np.linalg.norm(second_sample)
+            first_sample = first_sample/np.linalg.norm(first_sample, ord=2)
+            second_sample = second_sample/np.linalg.norm(second_sample, ord=2)
     if 'Cosine' in metric or 'cosine' in metric:
         similarity = 1 - distance.cosine(first_sample, second_sample)
     elif 'Correlation' in metric or 'correlation' in metric:
@@ -163,6 +163,10 @@ def calculate_similarity(first_sample, second_sample, metric='Cosine', normalise
         similarity = 1 - distance.chebyshev(first_sample, second_sample)
     elif 'L1' in metric or 'Manhattan' in metric or 'manhattan' in metric:
         similarity = 1 - distance.minkowski(first_sample, second_sample, p=1)
+    elif 'L2_normalised_by_first' in metric:
+        if normalise:
+            warnings.warn('Double normalisation using normalise flag with ', metric)
+        similarity = 1 - distance.euclidean(first_sample, second_sample)/np.linalg.norm(first_sample, ord=2)
     elif 'L2' in metric or 'Euclidean' in metric or 'euclidean' in metric:
         similarity = 1 - distance.euclidean(first_sample, second_sample)
     elif 'L3' in metric:
