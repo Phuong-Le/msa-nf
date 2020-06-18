@@ -498,6 +498,8 @@ if __name__ == '__main__':
                       help="choose a method for bootstrapping (perturbing) samples (classic, binomial, multinomial)")
     parser.add_option("--add_suffix", dest="add_suffix", action="store_true",
                       help="add suffixes to output folders (useful during optimisation scan analysis)")
+    parser.add_option("--optimisation_strategy", dest="optimisation_strategy", default='removal',
+                      help="set optimisation strategy (removal by default, addition or add-remove)")
 
     (options, args) = parser.parse_args()
 
@@ -602,7 +604,9 @@ if __name__ == '__main__':
         initial_signatures = signatures.iloc[:,sel_sig_nums]
 
         if options.optimise_signatures:
-            final_signatures = optimise_signatures(selected_mutations, initial_signatures, signatures, options.weak_threshold, options.strong_threshold, verbose=options.verbose)
+            final_signatures = optimise_signatures(selected_mutations, initial_signatures, signatures,
+                            strategy = options.optimisation_strategy, weak_threshold = options.weak_threshold,
+                            strong_threshold = options.strong_threshold, verbose = options.verbose)
         else:
             # skip signature optimisation
             final_signatures = initial_signatures
