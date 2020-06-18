@@ -93,10 +93,17 @@ def remove_weak_signatures(selected_mutations, initial_signatures, weak_threshol
         The list of remaining signatures passing the optimisation loop.
     -------
     """
-    # calculate the base similarity with an input set of signatures
-    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
-    base_similarity = stat_info[similarity_index]
+
     significant_signatures = copy.deepcopy(initial_signatures)
+    # calculate the base similarity with an input set of signatures
+    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+    base_similarity = stat_info[similarity_index]
+
+    if verbose:
+        print('Starting the removal loop.')
+        print('Current significant signatures:')
+        print(significant_signatures.columns.tolist())
+        print('Current base similarity:', base_similarity)
 
     all_weak_signatures_removed = False
     while all_weak_signatures_removed == False:
@@ -111,7 +118,7 @@ def remove_weak_signatures(selected_mutations, initial_signatures, weak_threshol
                 print('Running without signature:', signature)
             _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
             new_similarity = stat_info[similarity_index]
-            contribution = base_similarity-new_similarity
+            contribution = base_similarity - new_similarity
             signatures_contribution[signature] = contribution
 
         if verbose:
@@ -124,6 +131,9 @@ def remove_weak_signatures(selected_mutations, initial_signatures, weak_threshol
             if verbose:
                 print('Dropping signature %s from sample %s' % (least_contributing_signature, sample))
                 print('Number of signatures left:',len(significant_signatures.columns.tolist()))
+            # recalculate the base similarity with a new set of signatures
+            _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+            base_similarity = stat_info[similarity_index]
         else:
             if verbose:
                 print('All cleaned up!')
@@ -140,9 +150,11 @@ def remove_weak_signatures(selected_mutations, initial_signatures, weak_threshol
     final_similarity = stat_info[similarity_index]
 
     if verbose:
+        print('Finished the removal loop:')
         print('Significant signatures after removal loop:')
         print(significant_signatures.columns.tolist())
         print('Similarity after removal loop:', final_similarity)
+        print('*'*30)
 
     return significant_signatures, final_similarity
 
@@ -186,13 +198,19 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
     -------
     """
 
-    # calculate the base similarity with an input set of signatures
-    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
-    base_similarity = stat_info[similarity_index]
     significant_signatures = copy.deepcopy(initial_signatures)
-
+    # calculate the base similarity with an input set of signatures
+    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+    # global similarities_L2, similarities_L2_normed_by_1st, difference_in_norm
+    base_similarity = stat_info[similarity_index]
     # remaining signatures to loop through in search for most contributing ones
     remaining_signatures = all_available_signatures.drop(initial_signatures.columns, axis=1)
+
+    if verbose:
+        print('Starting the addition loop.')
+        print('Current significant signatures:')
+        print(significant_signatures.columns.tolist())
+        print('Current base similarity:', base_similarity)
 
     # a loop to add strong signatures if there is anything to add
     if remaining_signatures.empty:
@@ -214,7 +232,7 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
                 print('Running with signature:', signature)
             _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, signatures_to_run)
             new_similarity = stat_info[similarity_index]
-            contribution = new_similarity-base_similarity
+            contribution = new_similarity - base_similarity
             signatures_contribution[signature] = contribution
 
         if verbose:
@@ -227,6 +245,9 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
                 print('Adding signature %s to sample %s' % (most_contributing_signature, sample))
             significant_signatures[most_contributing_signature] = pd.Series(remaining_signatures[most_contributing_signature], index = significant_signatures.index)
             remaining_signatures = remaining_signatures.drop(most_contributing_signature, axis=1)
+            # recalculate the base similarity with a new set of signatures
+            _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+            base_similarity = stat_info[similarity_index]
             if remaining_signatures.empty:
                 if verbose:
                     print('All strong signatures added!')
@@ -244,20 +265,23 @@ def add_strong_signatures(selected_mutations, initial_signatures, all_available_
     final_similarity = stat_info[similarity_index]
 
     if verbose:
+        print('Finished the addition loop.')
         print('Significant signatures after addition loop:')
         print(significant_signatures.columns.tolist())
         print('Similarity after addition loop:', final_similarity)
+        print('*'*30)
 
     return significant_signatures, final_similarity
 
-def optimise_signatures(selected_mutations, initial_signatures, all_available_signatures, weak_threshold=0.01, strong_threshold=0.05, similarity_index=-3, loops_limit=100, verbose=False):
+def optimise_signatures(selected_mutations, initial_signatures, all_available_signatures, strategy='removal', weak_threshold=0.01, strong_threshold=0.05, similarity_index=-3, loops_limit=100, verbose=False):
     """
     Perform signature optimisation for NNLS attribution method.
     The method is outlined in the PCAWG paper, with the main idea as follows:
     The NNLS is intially applied on a given input set of signatures and mutations.
     The similarity of the reconstructed profile (linear combination of input signatures)
     to the initial sample is calculated, called base similarity (column with index similarity_index in stat_info dataframe).
-    Afterwards, a loop of addition and removal of signatures is executed, with set penalties, until convergence is reached.
+    Afterwards, a loop of addition and/or removal of signatures is executed, with set penalties, until convergence is reached.
+    The strategy can be defined as 'removal', 'addition' or 'add-remove', determining the nature of loops.
     The output is the final list of remaining signatures.
 
     Parameters:
@@ -274,6 +298,10 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
         Dataframe of all available signatures with the index of mutation categories, with the order
         that has to be the same as for the input mutations.
 
+    strategy: str
+        String parameter defining the strategy: 'removal' (default), 'addition' or 'add-remove',
+        determining the method of executing signature addition and/or removal loops.
+
     weak_threshold: float
         Similarity decrease threshold to exclude weakest signatures (default: 0.01)
 
@@ -284,7 +312,7 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
         Index of the similarity metric (e.g. 3rd from the end of stat_info column list: -3)
 
     loops_limit: int
-        Maximum number of iterations. If reached, optimisation is finished (default: 100).
+        Maximum number of add-remove iterations. If reached, optimisation is finished (default: 100).
 
     verbose: boolean
         Verbosity flag: lots of output for debugging if set to True
@@ -296,39 +324,54 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
     -------
     """
 
-    # calculate the base similarity with an input set of signatures
-    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, initial_signatures)
-    base_similarity = stat_info[similarity_index]
     significant_signatures = copy.deepcopy(initial_signatures)
+
+    # drop all signatures to start from zero
+    # significant_signatures.drop(significant_signatures.columns, axis=1, inplace=True)
+
+    # calculate the base similarity with an input set of signatures
+    _, _, _, _, stat_info = perform_signature_attribution(selected_mutations, significant_signatures)
+    base_similarity = stat_info[similarity_index]
+
 
     if verbose:
         print('Initial set of signatures:')
-        print(initial_signatures.columns.tolist())
+        print(significant_signatures.columns.tolist())
         print('Initial (base) similarity:', base_similarity)
 
     # Signature optimisation routine starts here
-    convergence_delta = 1
-    converging_similarity = None
-    loops = 0
-    while convergence_delta>0 and loops<loops_limit:
-        loops += 1
-        if converging_similarity:
-            base_similarity = converging_similarity
-        significant_signatures, converging_similarity = add_strong_signatures(selected_mutations, significant_signatures, all_available_signatures,
-                                                    strong_threshold = strong_threshold, similarity_index = similarity_index, verbose = verbose)
+    if strategy=='removal':
         significant_signatures, converging_similarity = remove_weak_signatures(selected_mutations, significant_signatures,
                                                     weak_threshold = weak_threshold, similarity_index = similarity_index, verbose = verbose)
-        convergence_delta = abs(converging_similarity-base_similarity)
-        if loops >= loops_limit:
-            warnings.warn("Maximum number of iterations (%i) reached, stopping optimisation." % loops_limit)
-        if verbose:
-            print('Loop', loops, 'done.')
-            print('Convergence delta: ', convergence_delta)
+    elif strategy=='addition':
+        significant_signatures, converging_similarity = add_strong_signatures(selected_mutations, significant_signatures, all_available_signatures,
+                                                    strong_threshold = strong_threshold, similarity_index = similarity_index, verbose = verbose)
+    elif strategy=='add-remove':
+        convergence_delta = 1
+        converging_similarity = 1
+        loop_counter = 0
+        while convergence_delta > 0 and loop_counter < loops_limit:
+            loop_counter += 1
+            if converging_similarity:
+                base_similarity = converging_similarity
+                significant_signatures, converging_similarity = add_strong_signatures(selected_mutations, significant_signatures, all_available_signatures,
+                                                        strong_threshold = strong_threshold, similarity_index = similarity_index, verbose = verbose)
+                significant_signatures, converging_similarity = remove_weak_signatures(selected_mutations, significant_signatures,
+                                                        weak_threshold = weak_threshold, similarity_index = similarity_index, verbose = verbose)
+            convergence_delta = abs(converging_similarity-base_similarity)
+            if loop_counter >= loops_limit:
+                warnings.warn("Maximum number of iterations (%i) reached, stopping optimisation." % loops_limit)
+            if verbose:
+                print('Loop', loop_counter, 'done.')
+                print('Convergence delta: ', convergence_delta)
+    else:
+        raise ValueError('Unknown strategy: please choose from removal, addition and add-remove')
 
     final_signatures = significant_signatures
 
     if verbose:
-        print('Number of loops:', loops)
+        if strategy=='add-remove':
+            print('Number of add-remove loops:', loop_counter)
         print('Final set of signatures:')
         print(final_signatures.columns.tolist())
         print('Final similarity:', converging_similarity)
@@ -374,6 +417,11 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
         jensenshannon_similarity: Jensen-Shannon similarity of mentioned profiles
     -------
     """
+    if signatures.empty:
+        if verbose:
+            print('Zero signatures provided to NNLS.')
+        return np.nan, np.nan, np.nan, np.nan, [sum(selected_mutations), np.nan, np.nan, np.nan, 0, 0, 0, 0, 0, 0]
+
     reg = nnls(signatures, selected_mutations)
     weights = reg[0]
 
@@ -397,18 +445,19 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     correlation = calculate_similarity(observed, fitted, metric='Correlation')
     chebyshev_similarity = calculate_similarity(observed, fitted, metric='Chebyshev', normalise = True)
     L1_similarity = calculate_similarity(observed, fitted, metric='L1', normalise = True)
-    L2_similarity = calculate_similarity(observed, fitted, metric='L2', normalise = True)
+    # L2_similarity = calculate_similarity(observed, fitted, metric='L2', normalise = True)
+    L2_similarity = calculate_similarity(observed, fitted, metric='L2_normalised_by_first')
     L3_similarity = calculate_similarity(observed, fitted, metric='L3', normalise = True)
     jensenshannon_similarity = calculate_similarity(observed, fitted, metric='jensen-shannon')
 
-    stat_info = [input_mutational_burden, rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]
+    stat_info = [input_mutational_burden, rss, chi2, r2, cosine_similarity, correlation, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]
 
     if verbose:
         if chi2>10e10:
             print('************* High chi2 sample *************')
         print('Signatures:')
         print(signatures.columns.tolist())
-        print('[input_mutational_burden, rss, chi2, r2, cosine_similarity, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]:',stat_info)
+        print('[input_mutational_burden, rss, chi2, r2, cosine_similarity, correlation, chebyshev_similarity, L1_similarity, L2_similarity, L3_similarity, jensenshannon_similarity]:',stat_info)
         print('Observed:', observed)
         print('Sum observed:', np.sum(observed))
         print('Fitted:', fitted)
@@ -520,7 +569,7 @@ if __name__ == '__main__':
 
     output_weights = pd.DataFrame(index=samples, columns=signature_columns_list)
     output_mutations = pd.DataFrame(index=samples, columns=signature_columns_list)
-    output_stat_info = pd.DataFrame(index=samples, columns=['Mutational burden', 'RSS', 'Chi2', 'R2', 'Cosine similarity', 'Chebyshev similarity', 'L1 similarity', 'L2 similarity', 'L3 similarity', 'Jensen-Shannon similarity'])
+    output_stat_info = pd.DataFrame(index=samples, columns=['Mutational burden', 'RSS', 'Chi2', 'R2', 'Cosine similarity', 'Correlation', 'Chebyshev similarity', 'L1 similarity', 'L2 similarity', 'L3 similarity', 'Jensen-Shannon similarity'])
 
     output_weights.index.name = output_mutations.index.name = output_stat_info.index.name = 'Sample'
 
