@@ -53,8 +53,8 @@ if __name__ == '__main__':
                         help="set mutation type (SBS, DBS, ID)")
     parser.add_argument("-c", "--context", dest="context", default=192, type=int,
                         help="set SBS context (96, 192)")
-    parser.add_argument("-a", "--plot_absolute_numbers", dest="abs_numbers", action="store_true",
-                        help="show absolute numbers of mutations")
+    parser.add_argument("-a", "--use_absolute_numbers", dest="abs_numbers", action="store_true",
+                        help="consider absolute numbers of mutations (relative by default)")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                         help="print additional information for debugging")
     parser.add_argument("-n", "--number_of_b_samples", dest="number_of_b_samples", default=1000, type=int,
