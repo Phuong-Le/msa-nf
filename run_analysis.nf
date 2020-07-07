@@ -51,6 +51,11 @@ params.signature_tables = "$PWD/signature_tables"
 params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
 params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
 
+// optimisation flag and parameters
+params.optimised = false
+params.weak_threshold = 0.02
+params.strong_threshold = 0.02
+
 // plotting flags
 params.plot_signatures = true
 params.plot_input_spectra = true
@@ -59,20 +64,12 @@ params.plot_residuals = true
 params.show_poisson_errors = true
 params.show_strands = false // only works with higher contexts (192, 288)
 params.show_nontranscribed_region = false // only wortks with higher contexts (288)
-error_flag = (params.show_poisson_errors) ? "-e" : ''
-strands_flag = (params.show_strands) ? "-b" : ''
-nontranscribed_flag = (params.show_nontranscribed_region) ? "-n" : ''
-
-
-// optimisation flag and parameters
-params.optimised = false
-params.weak_threshold = 0.002
-params.strong_threshold = 0.002
 
 // bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
 params.perform_bootstrapping = true
 params.bootstrap_method = "binomial"
 params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
+params.use_absolute_attributions = false // use absolute mutation counts in bootstrap analysis (relative by default)
 
 // if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
 params.signature_attribution_thresholds = 0..20
@@ -84,7 +81,13 @@ params.plots_output_path = "$PWD/plots" //_" + params.weak_threshold + "_" + par
 // signatures to use from signature_tables folder (e.g. sigProfiler, sigRandom)
 params.signature_prefix = "sigRandom"
 
+// helper flags for scripts (automatic based on parameters)
 optimised_flag = (params.optimised) ? "-x" : ''
+abs_flag = (params.use_absolute_attributions) ? "-a" : ''
+suffix = (params.use_absolute_attributions) ? "abs_mutations" : 'weights'
+error_flag = (params.show_poisson_errors) ? "-e" : ''
+strands_flag = (params.show_strands) ? "-b" : ''
+nontranscribed_flag = (params.show_nontranscribed_region) ? "-n" : ''
 
 process plot_input_spectra {
   publishDir "${params.plots_output_path}"
@@ -265,8 +268,8 @@ process make_bootstrap_tables {
   file bootstrap_weights from bootstrap_output_tables.collect()
 
   output:
-  file("./${dataset}/CIs_${mutation_type}_bootstrap_output_weights.csv") into confidence_intervals
-  file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_weights.json") into attributions_per_sample
+  file("./${dataset}/signatures_prevalences_${mutation_type}.csv") into signature_prevalences
+  file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
   file '*/*.csv'
   file '*/*.json'
   file '*/truth_studies/*.csv' optional true
@@ -277,7 +280,7 @@ process make_bootstrap_tables {
 
   script:
   """
-  python $PWD/scripts/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
+  python $PWD/scripts/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
                                                -c ${params.SBS_context} -S ${params.signature_tables} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \
                                                -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
@@ -301,7 +304,7 @@ process plot_bootstrap_attributions {
 
   script:
   """
-  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} \
+  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
                                                      -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
                                                      -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
   """
@@ -313,7 +316,7 @@ process plot_metrics {
 
   input:
   set dataset, mutation_type from attribution_for_metrics
-  file bootstrap_CIs from confidence_intervals
+  file prevalences from signature_prevalences
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
@@ -325,7 +328,6 @@ process plot_metrics {
 
   script:
   """
-  python $PWD/scripts/plot_metrics.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
-          -i ${params.NNLS_output_path} -S ${params.signature_tables} -p ${params.signature_prefix} -o "./"
+  python $PWD/scripts/plot_metrics.py -d ${dataset} -t ${mutation_type} -i ${params.NNLS_output_path} -o "./"
   """
 }
