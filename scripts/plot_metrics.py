@@ -123,36 +123,23 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("-i", "--input_attributions_folder", dest="input_attributions_folder", default='output_tables/',
                         help="set path to NNLS output data")
-    parser.add_argument("-S", "--signature_path", dest="signature_tables_path", default='signature_tables/',
-                        help="set path to signature tables")
-    parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
-                        help="set prefix in signature filenames (sigProfiler by default)")
     parser.add_argument("-d", "--dataset", dest="dataset_name", default='ESCC',
                         help="set the dataset name (e.g. ESCC, TCE)")
     parser.add_argument("-o", "--output_folder", dest="output_folder", default='plots/',
                         help="set path to save plots")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
                         help="set mutation type (SBS, DBS, ID)")
-    parser.add_argument("-c", "--context", dest="context", default=192, type=int,
-                        help="set SBS context (96, 192, 1536)")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                         help="print additional information for debugging")
-    parser.add_argument("-N", "--number_of_samples", dest="number_of_samples", default=-1, type=int,
-                        help="limit the number of samples to analyse (all by default)")
 
     args = parser.parse_args()
 
     dataset_name = args.dataset_name
     mutation_type = args.mutation_type
-    context = args.context
-    number_of_samples = args.number_of_samples
-    signature_tables_path = args.signature_tables_path
-    signatures_prefix = args.signatures_prefix
     input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
     output_folder = args.output_folder + '/' + dataset_name + '/' + mutation_type + '/bootstrap_plots/'
     make_folder_if_not_exists(output_folder)
 
-    metrics = ['Cosine', 'Correlation', 'L1', 'L2', 'Chebyshev', 'Jensen-Shannon']
     scores = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'F1', 'MCC']
 
     if mutation_type not in ['SBS', 'DBS', 'ID']:
@@ -162,61 +149,11 @@ if __name__ == '__main__':
         parser.error("Please specify the input path for reconstructed weights tables using -i option.")
 
     central_attribution_table_abs = pd.read_csv(input_attributions_folder + '/output_%s_%s_mutations_table.csv' % (dataset_name, mutation_type), index_col=0)
-    central_attribution_table_weights = pd.read_csv(input_attributions_folder + '/output_%s_%s_weights_table.csv' % (dataset_name, mutation_type), index_col=0)
-
-    if mutation_type == 'SBS':
-        if context == 96:
-            signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0, 1])
-        elif context in [192, 288]:
-            signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), index_col=[0, 1, 2])
-        else:
-            raise ValueError("Context %i is not supported." % context)
-    elif mutation_type == 'DBS':
-        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-    elif mutation_type == 'ID':
-        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-
-    if 'SIM' in dataset_name:
-        if mutation_type == 'SBS':
-            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.%i.weights.csv' % (dataset_name, context), index_col=0)
-        elif mutation_type == 'DBS':
-            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.dinucs.weights.csv' % dataset_name, index_col=0)
-        elif mutation_type == 'ID':
-            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
-
-    central_attribution_table = central_attribution_table_weights
-    colormap_label = 'Relative contribution'
-    filename = 'bootstrap_plot_weights'
-
-    # limit the number of samples to analyse (if specified by -N option)
-    if args.number_of_samples != -1:
-        central_attribution_table = central_attribution_table.head(args.number_of_samples)
-        if 'SIM' in dataset_name:
-            truth_attribution_table = truth_attribution_table.head(args.number_of_samples)
-
-    # convert columns and index to str
-    central_attribution_table.columns = central_attribution_table.columns.astype(str)
-    central_attribution_table.index = central_attribution_table.index.astype(str)
-    if 'SIM' in dataset_name:
-        truth_attribution_table.columns = truth_attribution_table.columns.astype(str)
-        truth_attribution_table.index = truth_attribution_table.index.astype(str)
 
     main_title = dataset_name.replace('_', '/') + ' data, ' + mutation_type + ' mutation type'
 
-    # samples and signatures to consider
-    samples = central_attribution_table.index.to_list()
+    # signatures to consider
     signatures_to_consider = list(central_attribution_table_abs.columns)
-
-    # # read dictionaries from JSON files produced by make_bootstrap_tables.py script
-    # common_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
-    # attributions_per_sample_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_sample" + common_filename_suffix)
-    # attributions_per_signature_dict = read_data_from_JSON(input_attributions_folder + "attributions_per_signature" + common_filename_suffix)
-    # number_of_b_samples = len(next(iter(attributions_per_sample_dict.values())).index)
-
-    # # read confidence confidence intervals
-    # confidence_intervals = pd.read_csv(input_attributions_folder + 'CIs' + common_filename_suffix.replace('json','csv'), index_col=0)
-    # confidence_intervals.columns = confidence_intervals.columns.astype(str)
-    # confidence_intervals.index = confidence_intervals.index.astype(str)
 
     # read truth-related dataframes and dictionaries of calculated variables
     if 'SIM' in dataset_name:
