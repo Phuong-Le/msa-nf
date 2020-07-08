@@ -45,7 +45,7 @@ log.info "help:                               ${params.help}"
 }
 
 params.datasets = ['SIM_test']
-params.mutation_types = ['SBS'] // add DBS/ID if needed
+params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove SBS/DBS/ID if needed
 params.input_tables = "$PWD/input_mutation_tables"
 params.signature_tables = "$PWD/signature_tables"
 params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
@@ -53,6 +53,7 @@ params.number_of_samples = -1 // number of samples to analyse (-1 means all avai
 
 // optimisation flag and parameters
 params.optimised = false
+params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
 params.weak_threshold = 0.02
 params.strong_threshold = 0.02
 
@@ -167,6 +168,7 @@ process run_NNLS_normal {
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
   python $PWD/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+                                  --optimisation_strategy ${params.optimisation_strategy} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   cp ${dataset}/output_${dataset}_${mutation_type}_residuals.csv ${params.input_tables}/${dataset}/
@@ -250,7 +252,7 @@ process run_NNLS_bootstrapping {
   script:
   """
   python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
-                                  --bootstrap_method ${params.bootstrap_method} \
+                                  --optimisation_strategy ${params.optimisation_strategy} --bootstrap_method ${params.bootstrap_method} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   mkdir -p ${dataset}/bootstrap_output
