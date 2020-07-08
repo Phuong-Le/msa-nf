@@ -266,8 +266,8 @@ def clean_up_labels(signature, category, mutation_type='SBS'):
             if '+' in category:
                 sig_clone.index = pd.Series(sig_clone.index).apply(lambda x : x[1:] if x.startswith("+") else x)
 
-            # for 1-2 and 4-8 indel categories, increase the last integer by 1
-            if category in mutation_categories['ID'][:2] or category in mutation_categories['ID'][4:8]:
+            # for certain indel categories, increase the last integer by 1
+            if category in ['DEL_C_1', 'DEL_T_1', 'DEL_repeats_2', 'DEL_repeats_3', 'DEL_repeats_4', 'DEL_repeats_5+']:
                 sig_clone.index = pd.Series(sig_clone.index).apply(lambda x : str(int(x[0])+1)+'+' if x.endswith("+") else str(int(x)+1))
     else:
         sig_clone = sig_clone.droplevel(0)
