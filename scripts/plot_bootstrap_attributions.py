@@ -179,8 +179,9 @@ if __name__ == '__main__':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
 
     if args.abs_numbers:
-        # multiply truth table by mutational burden from input sample:
-        truth_attribution_table = truth_attribution_table.mul(np.asarray(input_mutations.sum(axis=0)), axis=0)
+        if 'SIM' in dataset_name:
+            # multiply truth table by mutational burden from input sample:
+            truth_attribution_table = truth_attribution_table.mul(np.asarray(input_mutations.sum(axis=0)), axis=0)
         central_attribution_table = central_attribution_table_abs
         colormap_label = 'Absolute mutations number'
         input_filename_suffix = "_%s_bootstrap_output_abs_mutations.json" % mutation_type
