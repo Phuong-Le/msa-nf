@@ -108,9 +108,9 @@ process plot_input_spectra {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.input_tables} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.input_tables} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
@@ -194,13 +194,13 @@ process plot_fitted_spectra {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
@@ -222,9 +222,9 @@ process plot_residuals {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -H -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -H -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $PWD/scripts/plot_mutation_spectra.py -C -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }

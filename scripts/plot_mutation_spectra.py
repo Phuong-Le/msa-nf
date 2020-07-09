@@ -321,6 +321,8 @@ if __name__ == '__main__':
                         help="Add non transcribed region in plots, in addition to strands")
     parser.add_argument("-C", "--condensed", dest="condensed", action="store_true",
                         help="Make condensed plots with fewer categories")
+    parser.add_argument("--number", dest="number_of_spectra", default=-1, type=int,
+                        help="limit the number of spectra to plot (all by default)")
     parser.add_argument("--samples", nargs='+', dest="samples", default = [],
                         help="Make plots for the specified list of samples, e.g. -S PD37458a PD37459a")
     parser.add_argument("-f", "--plot_fitted_spectra", dest="plot_fitted_spectra", action="store_true",
@@ -380,10 +382,6 @@ if __name__ == '__main__':
             index_col = [0,1,2]
         else:
             raise ValueError("Context %i is not supported." % context)
-    elif mutation_type=='DBS':
-        index_col = 0 if 'SIM' in dataset_name else [0,1]
-    else:
-        index_col = 0 if 'SIM' in dataset_name else [0,1,2,3]
 
     if args.plot_fitted_spectra:
         input_spectra = pd.read_csv('%s/%s/output_%s_%s_fitted_values.csv' % (input_folder, dataset_name, dataset_name, mutation_type), sep=None, index_col=index_col)
@@ -416,17 +414,16 @@ if __name__ == '__main__':
         condensed_subfolder = ''
         condensed_suffix = ''
 
+    # limit the number of samples to analyse (if specified by --number option)
+    if args.number_of_spectra!=-1:
+        input_spectra = input_spectra.iloc[:,0:args.number_of_spectra]
+
     if args.samples:
         list_of_spectra = args.samples
     else:
         list_of_spectra = input_spectra.columns
 
     title_suffix = dataset_name.replace('_','/') + ', ' + mutation_type
-    #
-    # SP_activities = pd.read_csv('/Users/cation/Desktop/fitted_activities.txt', sep='\t', index_col=0)
-    # fitted = signatures.dot(SP_activities.T)
-    # true_input_spectra = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_folder, dataset_name, dataset_name, context), sep=None, index_col=[0,1,2])
-    # input_spectra = fitted
 
     spectra_to_plot = input_spectra
     if args.plot_fitted_spectra:
@@ -444,7 +441,7 @@ if __name__ == '__main__':
         # all residuals
         plot_residuals(spectra_to_plot.sum(), 'All residuals', savepath = output_folder + 'all_residuals.pdf')
         # context-dependent residuals
-        if context==288:
+        if context==288 and mutation_type=='SBS':
             # 96-context residuals
             simplified_spectra = spectra_to_plot
             simplified_spectra = simplified_spectra.loc['T']+simplified_spectra.loc['U']+simplified_spectra.loc['N']
