@@ -57,8 +57,8 @@ if __name__ == '__main__':
                       help="set path to signature tables")
     parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
                       help="set prefix in signature filenames (sigProfiler by default)")
-    parser.add_argument("-c", "--context", dest="context", type=int, default=192,
-                      help="set context for SBS mutation type (default: 192)")
+    parser.add_argument("-c", "--context", dest="context", type=int, default=288,
+                      help="set context (default: 288)")
     parser.add_argument("-S", "--reindex_signatures", dest="reindex_signatures", default=None,
                       help="reindex signature tables instead of mutation tables (provide full path to file)")
 
@@ -69,8 +69,8 @@ if __name__ == '__main__':
     signature_tables_path = options.signature_tables_path
     signatures_prefix = options.signatures_prefix
 
-    if mutation_type not in ['SBS']:
-        raise ValueError("Unsupported mutation type: %s. Supported type: SBS" % mutation_type)
+    if mutation_type not in ['SBS', 'DBS', 'ID']:
+        raise ValueError("Unsupported mutation type: %s. Supported types: SBS, DBS, ID" % mutation_type)
 
     signatures = None
     if mutation_type=='SBS':
@@ -91,12 +91,16 @@ if __name__ == '__main__':
     # reindex signatures
     if options.reindex_signatures:
         signature_table = pd.read_csv(options.reindex_signatures, sep=None, index_col=0)
-        reindexed_signatures = convert_index(signature_table, context=context)
-        reindexed_signatures = reindexed_signatures.reindex(signatures.index)
+        if mutation_type=='SBS':
+            reindexed_signatures = convert_index(signature_table, context=context)
+            reindexed_signatures = reindexed_signatures.reindex(signatures.index)
+        else:
+            # simply overwrite index for other mutation types (equality assumption)
+            reindexed_signatures = signature_table
+            reindexed_signatures.index = signatures.index
         reindexed_signatures.to_csv(options.reindex_signatures + '_reindexed', sep = ',')
     else:
         input_files = glob.glob(input_path + '/*.' + suffix)
-
         for file in input_files:
             if not mutation_type in file:
                 continue
@@ -105,11 +109,15 @@ if __name__ == '__main__':
             if context!=192 and not str(context) in file:
                 continue
             input_table = pd.read_csv(file, sep=None, index_col=0)
-            input_table = convert_index(input_table, context=context)
 
-            if signatures is not None:
-                input_table = input_table.reindex(signatures.index)
-                compare_index(input_table, signatures)
+            if mutation_type=='SBS':
+                input_table = convert_index(input_table, context=context)
+                if signatures is not None:
+                    input_table = input_table.reindex(signatures.index)
+                    compare_index(input_table, signatures)
+            else:
+                # simply overwrite index for other mutation types (equality assumption)
+                input_table.index = signatures.index
 
             new_filename = file.replace(suffix, 'csv')
             if context==192:
