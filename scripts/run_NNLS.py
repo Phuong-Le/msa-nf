@@ -536,10 +536,10 @@ if __name__ == '__main__':
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.dinucs.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0 if 'SIM' in dataset_name else [0,1])
+        input_mutations = pd.read_csv('%s/%s/WGS_%s.dinucs.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0)
     elif mutation_type=='ID':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0 if 'SIM' in dataset_name else [0,1,2,3])
+        input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0)
 
     print("Performing NNLS for %s dataset, %s mutation type." % (dataset_name, mutation_type))
     if mutation_type=='SBS':
