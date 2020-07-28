@@ -388,7 +388,10 @@ if __name__ == '__main__':
     elif args.plot_residuals:
         input_spectra = pd.read_csv('%s/%s/output_%s_%s_residuals.csv' % (input_folder, dataset_name, dataset_name, mutation_type), sep=None, index_col=index_col)
     elif args.plot_signatures:
-        input_spectra = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=index_col)
+        if mutation_type=='SBS' and context!=96:
+            input_spectra = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), sep=None, index_col=index_col)
+        else:
+            input_spectra = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=index_col)
     else:
         if mutation_type=='SBS':
             input_spectra = pd.read_csv('%s/%s/WGS_%s.%i.csv' % (input_folder, dataset_name, dataset_name, context), sep=None, index_col=index_col)
