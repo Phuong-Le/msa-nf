@@ -84,9 +84,9 @@ if __name__ == '__main__':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=0)
 
     if options.exome:
-        suffix = 'exome'
+        suffix = '.exome'
     else:
-        suffix = 'all'
+        suffix = '.all'
 
     # reindex signatures
     if options.reindex_signatures:
@@ -100,7 +100,7 @@ if __name__ == '__main__':
             reindexed_signatures.index = signatures.index
         reindexed_signatures.to_csv(options.reindex_signatures + '_reindexed', sep = ',')
     else:
-        input_files = glob.glob(input_path + '/*.' + suffix)
+        input_files = glob.glob(input_path + '/*' + suffix)
         for file in input_files:
             if not mutation_type in file:
                 continue
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 # simply overwrite index for other mutation types (equality assumption)
                 input_table.index = signatures.index
 
-            new_filename = file.replace(suffix, 'csv')
+            new_filename = file.replace(suffix, '.csv')
             if context==192:
                 new_filename = new_filename.replace('384','192')
 
