@@ -46,8 +46,8 @@ log.info "help:                               ${params.help}"
 
 params.datasets = ['SIM_test']
 params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove SBS/DBS/ID if needed
-params.input_tables = "$PWD/input_mutation_tables"
-params.signature_tables = "$PWD/signature_tables"
+params.input_tables = "$baseDir/input_mutation_tables"
+params.signature_tables = "$baseDir/signature_tables"
 params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
 params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
 
@@ -76,8 +76,8 @@ params.use_absolute_attributions = false // use absolute mutation counts in boot
 params.signature_attribution_thresholds = 0..20
 
 // output paths
-params.NNLS_output_path = "$PWD/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
-params.plots_output_path = "$PWD/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
+params.NNLS_output_path = "$baseDir/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
+params.plots_output_path = "$baseDir/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
 
 // signatures to use from signature_tables folder (e.g. sigProfiler, sigRandom)
 params.signature_prefix = "sigRandom"
@@ -108,9 +108,9 @@ process plot_input_spectra {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.input_tables} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.input_tables} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
@@ -133,7 +133,7 @@ process plot_signatures {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -S -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
+  python $baseDir/scripts/plot_mutation_spectra.py -S -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
                                                -p ${params.signature_prefix} -s ${params.signature_tables} \
                                                -r ${strands_flag} ${nontranscribed_flag} -o "./"
   """
@@ -167,7 +167,7 @@ process run_NNLS_normal {
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv ${params.NNLS_output_path}/${dataset}/
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
-  python $PWD/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+  python $baseDir/scripts/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   --optimisation_strategy ${params.optimisation_strategy} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
@@ -194,13 +194,13 @@ process plot_fitted_spectra {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
@@ -222,9 +222,9 @@ process plot_residuals {
 
   script:
   """
-  python $PWD/scripts/plot_mutation_spectra.py -H -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -H -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
-  python $PWD/scripts/plot_mutation_spectra.py -C -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
+  python $baseDir/scripts/plot_mutation_spectra.py -C -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
                                                 -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
@@ -251,7 +251,7 @@ process run_NNLS_bootstrapping {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
+  python $baseDir/scripts/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   --optimisation_strategy ${params.optimisation_strategy} --bootstrap_method ${params.bootstrap_method} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
                                   -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
@@ -282,7 +282,7 @@ process make_bootstrap_tables {
 
   script:
   """
-  python $PWD/scripts/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
+  python $baseDir/scripts/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
                                                -c ${params.SBS_context} -S ${params.signature_tables} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \
                                                -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
@@ -306,7 +306,7 @@ process plot_bootstrap_attributions {
 
   script:
   """
-  python $PWD/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
+  python $baseDir/scripts/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
                                                      -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
                                                      -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
   """
@@ -330,6 +330,6 @@ process plot_metrics {
 
   script:
   """
-  python $PWD/scripts/plot_metrics.py -d ${dataset} -t ${mutation_type} -i ${params.NNLS_output_path} -o "./"
+  python $baseDir/scripts/plot_metrics.py -d ${dataset} -t ${mutation_type} -i ${params.NNLS_output_path} -o "./"
   """
 }
