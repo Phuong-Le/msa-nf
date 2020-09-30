@@ -143,18 +143,26 @@ def calculate_similarity(first_sample, second_sample, metric='Cosine', normalise
     assert len(first_sample) == len(second_sample)
     if normalise:
         if 'L1' in metric or 'Manhattan' in metric or 'manhattan' in metric:
-            first_sample = first_sample/np.linalg.norm(first_sample, ord=1)
-            second_sample = second_sample/np.linalg.norm(second_sample, ord=1)
+            if np.linalg.norm(first_sample, ord=1)!=0:
+                first_sample = first_sample/np.linalg.norm(first_sample, ord=1)
+            if np.linalg.norm(second_sample, ord=1)!=0:
+                second_sample = second_sample/np.linalg.norm(second_sample, ord=1)
         elif 'L3' in metric:
-            first_sample = first_sample/np.linalg.norm(first_sample, ord=3)
-            second_sample = second_sample/np.linalg.norm(second_sample, ord=3)
+            if np.linalg.norm(first_sample, ord=3)!=0:
+                first_sample = first_sample/np.linalg.norm(first_sample, ord=3)
+	    if np.linalg.norm(second_sample, ord=3)!=0:
+                second_sample = second_sample/np.linalg.norm(second_sample, ord=3)
         elif 'Chebyshev' in metric or 'chebyshev' in metric:
-            first_sample = first_sample/np.linalg.norm(first_sample, ord=np.inf)
-            second_sample = second_sample/np.linalg.norm(second_sample, ord=np.inf)
+            if np.linalg.norm(first_sample, ord=np.inf)!=0:
+                first_sample = first_sample/np.linalg.norm(first_sample, ord=np.inf)
+            if np.linalg.norm(second_sample, ord=np.inf)!=0:
+                second_sample = second_sample/np.linalg.norm(second_sample, ord=np.inf)
         else:
             # consider L2 norm
-            first_sample = first_sample/np.linalg.norm(first_sample, ord=2)
-            second_sample = second_sample/np.linalg.norm(second_sample, ord=2)
+            if np.linalg.norm(first_sample, ord=2)!=0:
+                first_sample = first_sample/np.linalg.norm(first_sample, ord=2)
+            if np.linalg.norm(second_sample, ord=2)!=0:
+                second_sample = second_sample/np.linalg.norm(second_sample, ord=2)
     if 'Cosine' in metric or 'cosine' in metric:
         similarity = 1 - distance.cosine(first_sample, second_sample)
     elif 'Correlation' in metric or 'correlation' in metric:
