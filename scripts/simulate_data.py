@@ -61,6 +61,9 @@ def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total'
         y = stats.norm.pdf( bins, mu, sigma)
         text = 'Fitted Gaussian:\n $\\mu$=%.2f, $\\sigma=$%.2f' %  (mu, sigma)
 
+    number_of_positive_samples = sum(x > 0 for x in mutational_burden)
+    text += '\n %i/%i samples' % (number_of_positive_samples, len(mutational_burden))
+
     ax.plot(bins, y, 'r--', linewidth=2)
     # remove indentation from latex-based text
     ax.text(0.65, 0.9, text, fontsize=9, transform=ax.axes.transAxes)
@@ -133,6 +136,9 @@ if __name__ == '__main__':
         elif context in [192, 288]:
             reference_signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' %
                                             (signature_tables_path, signatures_prefix, mutation_type, context), index_col=[0,1,2])
+        elif context==1536:
+            reference_signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' %
+                                            (signature_tables_path, signatures_prefix, mutation_type, context), index_col=0)
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
@@ -145,8 +151,8 @@ if __name__ == '__main__':
                                             (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
     for signature in reference_signatures.columns:
-        if not np.isclose(reference_signatures.sum()[signature], 1, rtol=1e-3):
-            raise ValueError("Probabilities for signature %s do not add up to 1." % signature)
+        if not np.isclose(reference_signatures.sum()[signature], 1, rtol=1e-2):
+            raise ValueError("Probabilities for signature %s do not add up to 1: %.3f" % (signature, reference_signatures.sum()[signature]))
 
     generated_signature_burdens = {}
     if options.bootstrap_input_mutation_table:
@@ -228,7 +234,7 @@ if __name__ == '__main__':
         generated_mutations[i] = generated_mutations[i].astype(int)
 
     # plot total mutational burden distribution:
-    plot_mutational_burden(generated_mutational_burdens, savepath='%s/%s_plots/generated_burden_total.pdf' % (output_path, dataset_name) )
+    plot_mutational_burden(generated_mutational_burdens, savepath='%s/%s_plots/generated_burden_%s_total.pdf' % (output_path, dataset_name, mutation_type) )
 
     # save dataframes
     generated_mutations.to_csv(output_filename)
