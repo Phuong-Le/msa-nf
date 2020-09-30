@@ -1,4 +1,4 @@
-from optparse import OptionParser
+import argparse
 import os
 import warnings
 import pandas as pd
@@ -36,6 +36,8 @@ def bootstrap_mutation_table(input_dataframe, method="classic", fitted=None, res
         # mutational burdens for each sample (column) for normalisation
         sums = input_mutations.sum(axis=0)
         normalised_input_mutations = input_mutations.div(sums, axis=1)
+        # in case if mutational burden is zero for some samples, replace nans with zeros
+        normalised_input_mutations.fillna(0, inplace=True)
         bootstrap_mutations = pd.DataFrame(index = input_mutations.index, columns = input_mutations.columns)
         for i in range(len(bootstrap_mutations.columns)):
             if method=="binomial":
@@ -378,7 +380,7 @@ def optimise_signatures(selected_mutations, initial_signatures, all_available_si
 
     return final_signatures
 
-def perform_signature_attribution(selected_mutations, signatures, verbose=False):
+def perform_signature_attribution(selected_mutations, signatures, normalise_mutations=False, verbose=False):
     """
     Apply the NNLS attribution method using NNLS function from scipy.optimize:
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.nnls.html
@@ -393,6 +395,10 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
         Dataframe of input signatures with the index of mutation categories, with the order
         that has to be the same as for the input mutations
 
+    normalise_mutations: boolean
+        Boolean flag, if set to true the mutation counts normalised to the input mutational burden
+        will be returned. False by default.
+
     verbose: boolean
         Verbosity flag: lots of output for debugging if set to True
 
@@ -403,7 +409,8 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
         The list weights normalised by the sum of weights (i.e. all add up to one).
         Corresponds to a probability of all signatures to contribute to the given sample
     mutation_numbers: list of floats
-        The list of normalised weights mentioned above, multiplied by total mutational burden
+        The list of normalised weights mentioned above multiplied by total mutational burden in case if
+        normalise_mutations flag is set to True. Otherwise, mutation counts as extracted by NNLS.
     stat_info: a list of floats
         A list of statistical info variables, as follows:
         input_mutational_burden: Total mutational burden of input sample
@@ -426,7 +433,10 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     weights = reg[0]
 
     normalised_weights = weights/sum(weights)
-    mutation_numbers = normalised_weights*sum(selected_mutations)
+    if normalise_mutations:
+        mutation_numbers = normalised_weights*sum(selected_mutations)
+    else:
+        mutation_numbers = weights
 
     # calculate RSS, chi2, r2, similarity metrics
     observed = selected_mutations
@@ -467,54 +477,56 @@ def perform_signature_attribution(selected_mutations, signatures, verbose=False)
     return normalised_weights, mutation_numbers, fitted, residuals, stat_info
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-t", "--mutation_type", dest="mutation_type", default='',
-                      help="set mutation type (SBS, DBS, ID)")
-    parser.add_option("-c", "--context", dest="context", default=96, type='int',
-                      help="set SBS context (96, 192)")
-    parser.add_option("-i", "--input_path", dest="input_path", default='input_mutation_tables/',
-                      help="set path to input mutation tables")
-    parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
-                      help="set path to signature tables")
-    parser.add_option("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
-                      help="set prefix in signature filenames (sigProfiler by default)")
-    parser.add_option("-o", "--output_path", dest="output_path", default='output_tables/',
-                      help="set path to save output tables")
-    parser.add_option("-x", "--optimise_signatures", dest="optimise_signatures", action="store_true",
-                      help="perform signature optimisation (remove weak signature, add strong ones)")
-    parser.add_option("-W", "--weak_threshold", dest="weak_threshold", default=0.01, type='float',
-                      help="Similarity decrease threshold to exclude weakest signatures in optimisation (default: 0.01)")
-    parser.add_option("-S", "--strong_threshold", dest="strong_threshold", default=0.01, type='float',
-                      help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.05)")
-    parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
-                      help="set the dataset name (SIM by default)")
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
-                      help="verbosity flag for debugging (lots of output)")
-    parser.add_option("-n", "--number", dest="number_of_samples", default=-1, type='int',
-                      help="limit the number of samples to analyse (all by default)")
-    parser.add_option("-B", "--bootstrap", dest="bootstrap", action="store_true",
-                      help="Reshuffle input mutation tables for bootstrapping")
-    parser.add_option("--bootstrap_method", dest="bootstrap_method", default='binomial',
-                      help="choose a method for bootstrapping (perturbing) samples (classic, binomial, multinomial)")
-    parser.add_option("--add_suffix", dest="add_suffix", action="store_true",
-                      help="add suffixes to output folders (useful during optimisation scan analysis)")
-    parser.add_option("--optimisation_strategy", dest="optimisation_strategy", default='removal',
-                      help="set optimisation strategy (removal by default, addition or add-remove)")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
+                        help="set the dataset name (SIM by default)")
+    parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
+                        help="set mutation type (SBS, DBS, ID)")
+    parser.add_argument("-c", "--context", dest="context", default=96, type=int,
+                        help="set SBS context (96, 192)")
+    parser.add_argument("-i", "--input_path", dest="input_path", default='input_mutation_tables/',
+                        help="set path to input mutation tables")
+    parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
+                        help="set path to signature tables")
+    parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
+                        help="set prefix in signature filenames (sigProfiler by default)")
+    parser.add_argument("-o", "--output_path", dest="output_path", default='output_tables/',
+                        help="set path to save output tables")
+    parser.add_argument("-x", "--optimise_signatures", dest="optimise_signatures", action="store_true",
+                        help="perform signature optimisation (remove weak signature, add strong ones)")
+    parser.add_argument("-W", "--weak_threshold", dest="weak_threshold", default=0.01, type=float,
+                        help="Similarity decrease threshold to exclude weakest signatures in optimisation (default: 0.01)")
+    parser.add_argument("-S", "--strong_threshold", dest="strong_threshold", default=0.01, type=float,
+                        help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.05)")
+    parser.add_argument("-N", "--normalise_mutations", dest="normalise_mutations", action="store_true",
+                        help="Normalise mutation counts to the input mutational burden in NNLS output")
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
+                        help="verbosity flag for debugging (lots of output)")
+    parser.add_argument("-n", "--number", dest="number_of_samples", default=-1, type=int,
+                        help="limit the number of samples to analyse (all by default)")
+    parser.add_argument("-B", "--bootstrap", dest="bootstrap", action="store_true",
+                        help="Reshuffle input mutation tables for bootstrapping")
+    parser.add_argument("--bootstrap_method", dest="bootstrap_method", default='binomial',
+                        help="choose a method for bootstrapping (perturbing) samples (classic, binomial, multinomial)")
+    parser.add_argument("--add_suffix", dest="add_suffix", action="store_true",
+                        help="add suffixes to output folders (useful during optimisation scan analysis)")
+    parser.add_argument("--optimisation_strategy", dest="optimisation_strategy", default='removal',
+                        help="set optimisation strategy (removal by default, addition or add-remove)")
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    dataset_name = options.dataset_name
-    mutation_type = options.mutation_type
-    context = options.context
-    input_path = options.input_path
-    signature_tables_path = options.signature_tables_path
-    signatures_prefix = options.signatures_prefix
-    output_path = options.output_path + '/' + dataset_name
+    dataset_name = args.dataset_name
+    mutation_type = args.mutation_type
+    context = args.context
+    input_path = args.input_path
+    signature_tables_path = args.signature_tables_path
+    signatures_prefix = args.signatures_prefix
+    output_path = args.output_path + '/' + dataset_name
 
-    if options.add_suffix:
+    if args.add_suffix:
         output_path += '_%i_NNLS' % context
-        if options.optimise_signatures:
-            output_path += '_%.4f_%.4f' % (options.weak_threshold, options.strong_threshold)
+        if args.optimise_signatures:
+            output_path += '_%.4f_%.4f' % (args.weak_threshold, args.strong_threshold)
         else:
             output_path += '_unoptimised'
 
@@ -544,17 +556,17 @@ if __name__ == '__main__':
     print("Performing NNLS for %s dataset, %s mutation type." % (dataset_name, mutation_type))
     if mutation_type=='SBS':
         print("SBS context: %i" % context)
-    if options.optimise_signatures:
-        print("Optimised NNLS method, weak/strong thresholds: %f/%f" % (options.weak_threshold, options.strong_threshold))
-    if options.bootstrap:
-        print("Perturbing the input mutation sample, bootstrap (simulation) method: %s" % options.bootstrap_method)
+    if args.optimise_signatures:
+        print("Optimised NNLS method, weak/strong thresholds: %f/%f" % (args.weak_threshold, args.strong_threshold))
+    if args.bootstrap:
+        print("Perturbing the input mutation sample, bootstrap (simulation) method: %s" % args.bootstrap_method)
 
-    if options.bootstrap and options.bootstrap_method != "bootstrap_residuals":
-        input_mutations = bootstrap_mutation_table(input_mutations, method=options.bootstrap_method)
+    if args.bootstrap and args.bootstrap_method != "bootstrap_residuals":
+        input_mutations = bootstrap_mutation_table(input_mutations, method=args.bootstrap_method)
 
     # limit the number of samples to analyse (if specified by -n option)
-    if options.number_of_samples!=-1:
-        input_mutations = input_mutations.iloc[:,0:options.number_of_samples]
+    if args.number_of_samples!=-1:
+        input_mutations = input_mutations.iloc[:,0:args.number_of_samples]
 
     samples = input_mutations.columns
 
@@ -585,12 +597,12 @@ if __name__ == '__main__':
     # residuals and fitted values dataframes
     residuals_dataframe = pd.DataFrame(index=input_mutations.index, columns=input_mutations.columns)
     fitted_dataframe = pd.DataFrame(index=input_mutations.index, columns=input_mutations.columns)
-    if options.bootstrap and options.bootstrap_method=="bootstrap_residuals":
+    if args.bootstrap and args.bootstrap_method=="bootstrap_residuals":
         # load pre-created residuals and fitted values dataframes (needed for bootstrap)
         # so far only for SBS 192 context
         residuals_dataframe = pd.read_csv('%s/%s/output_%s_%s_residuals.csv' % (input_path, dataset_name, dataset_name, mutation_type), index_col=[0,1,2])
         fitted_dataframe = pd.read_csv('%s/%s/output_%s_%s_fitted_values.csv' % (input_path, dataset_name, dataset_name, mutation_type), index_col=[0,1,2])
-        input_mutations = bootstrap_mutation_table(input_mutations, method=options.bootstrap_method, fitted=fitted_dataframe, residuals=residuals_dataframe)
+        input_mutations = bootstrap_mutation_table(input_mutations, method=args.bootstrap_method, fitted=fitted_dataframe, residuals=residuals_dataframe)
 
     # print(input_mutations.index.tolist())
     # print(signatures.index.tolist())
@@ -603,16 +615,16 @@ if __name__ == '__main__':
 
         initial_signatures = signatures.iloc[:,sel_sig_nums]
 
-        if options.optimise_signatures:
+        if args.optimise_signatures:
             final_signatures = optimise_signatures(selected_mutations, initial_signatures, signatures,
-                            strategy = options.optimisation_strategy, weak_threshold = options.weak_threshold,
-                            strong_threshold = options.strong_threshold, verbose = options.verbose)
+                            strategy = args.optimisation_strategy, weak_threshold = args.weak_threshold,
+                            strong_threshold = args.strong_threshold, verbose = args.verbose)
         else:
             # skip signature optimisation
             final_signatures = initial_signatures
 
         if not final_signatures.empty:
-            normalised_weights, mutation_numbers, fitted, residuals, stat_info = perform_signature_attribution(selected_mutations, final_signatures, verbose=options.verbose)
+            normalised_weights, mutation_numbers, fitted, residuals, stat_info = perform_signature_attribution(selected_mutations, final_signatures, normalise_mutations=args.normalise_mutations, verbose=args.verbose)
             signatures_to_fill = final_signatures.columns
             output_weights.loc[sample, signatures_to_fill] = normalised_weights
             output_mutations.loc[sample, signatures_to_fill] = mutation_numbers
@@ -635,6 +647,6 @@ if __name__ == '__main__':
     output_stat_info.to_csv(output_path + '/output_%s_%s_stat_info.csv' % (dataset_name, mutation_type))
     residuals_dataframe.to_csv(output_path + '/output_%s_%s_residuals.csv' % (dataset_name, mutation_type))
     fitted_dataframe.to_csv(output_path + '/output_%s_%s_fitted_values.csv' % (dataset_name, mutation_type))
-    if not options.bootstrap:
+    if not args.bootstrap:
         residuals_dataframe.to_csv('%s/%s/output_%s_%s_residuals.csv' % (input_path, dataset_name, dataset_name, mutation_type))
         fitted_dataframe.to_csv('%s/%s/output_%s_%s_fitted_values.csv' % (input_path, dataset_name, dataset_name, mutation_type))
