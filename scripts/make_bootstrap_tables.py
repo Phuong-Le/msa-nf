@@ -63,6 +63,8 @@ if __name__ == '__main__':
                         help="limit the number of samples to analyse (all by default)")
     parser.add_argument("-T", "--signature_attribution_thresholds", nargs='+', dest="signature_attribution_thresholds",
                         help="set the list of signature attribution thresholds for confidence probability plots (truth study)")
+    parser.add_argument("--suffix", dest="suffix", default='',
+                        help="add suffixes to inputs (useful during optimisation scan analysis)")
 
     args = parser.parse_args()
 
@@ -72,8 +74,12 @@ if __name__ == '__main__':
     number_of_b_samples = args.number_of_b_samples
     signature_tables_path = args.signature_tables_path
     signatures_prefix = args.signatures_prefix
-    input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
-    output_folder = args.output_folder + '/' + dataset_name
+    if not args.suffix:
+        input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
+        output_folder = args.output_folder + '/' + dataset_name
+    else:
+        input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '_' + str(context) + '_NNLS_' + args.suffix + '/'
+        output_folder = args.output_folder + '/' + dataset_name + '_' + str(context) + '_NNLS_' + args.suffix + '/'
     make_folder_if_not_exists(output_folder)
     if 'SIM' in dataset_name:
         make_folder_if_not_exists(output_folder + '/truth_studies')
@@ -92,6 +98,10 @@ if __name__ == '__main__':
     bootstrap_attribution_table_abs_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type)
     bootstrap_attribution_table_weights_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type)
     bootstrap_stat_table_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_i_stat_info.csv' % (dataset_name, mutation_type)
+    if args.suffix:
+        bootstrap_attribution_table_abs_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_%s_i_mutations_table.csv' % (dataset_name, mutation_type, args.suffix)
+        bootstrap_attribution_table_weights_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_%s_i_weights_table.csv' % (dataset_name, mutation_type, args.suffix)
+        bootstrap_stat_table_filename = input_attributions_folder + '/bootstrap_output/output_%s_%s_%s_i_stat_info.csv' % (dataset_name, mutation_type, args.suffix)
 
     if mutation_type == 'SBS':
         if context == 96:
@@ -286,9 +296,9 @@ if __name__ == '__main__':
                         upper = threshold
                     if lower <= truth_attribution_table.loc[sample, signature] <= upper:
                         signatures_CPs_dict[threshold].loc[sample, signature] = 1
-                    # elif lower > 0 and upper > 0 and truth_attribution_table.loc[sample, signature] > 0:
-                    #     # this case includes cases when CI is not consistent with 0, signature is simulated but CI does not contain the true value
-                    #     signatures_CPs_dict[threshold].loc[sample, signature] = 1
+                    elif lower > 0 and upper > 0 and truth_attribution_table.loc[sample, signature] > 0:
+                        # this case includes cases when CI is not consistent with 0, signature is simulated but CI does not contain the true value
+                        signatures_CPs_dict[threshold].loc[sample, signature] = 1
                     else:
                         signatures_CPs_dict[threshold].loc[sample, signature] = 0
             # normalise to calculate CPs
@@ -299,25 +309,32 @@ if __name__ == '__main__':
         print('Signature sensitivity thresholds calculated.')
         print('Elapsed time:', datetime.now() - start_time)
 
-    # correct attributions per sample dict to disregard medians consistent with 0
-    for sample in samples:
-        for signature in signatures_to_consider:
-            array = attributions_per_sample_dict[sample][signature]
-            # disregard attributions consistent with 0
-            # if confidence_interval[0]==0:
-            # disregard attribution with 0 CI median
-            if np.median(array) == 0:
-                attributions_per_sample_dict[sample][signature] = 0
+    # # correct attributions per sample dict to disregard medians consistent with 0
+    # for sample in samples:
+    #     for signature in signatures_to_consider:
+    #         array = attributions_per_sample_dict[sample][signature]
+    #         # disregard attributions consistent with 0
+    #         # if confidence_interval[0]==0:
+    #         # disregard attribution with 0 CI median
+    #         if np.median(array) == 0:
+    #             attributions_per_sample_dict[sample][signature] = 0
 
     # calculate signature prevalences
     for sample in samples:
         signatures_prevalences.loc[sample, :] = attributions_per_sample_dict[sample].astype(bool).sum(axis=0)
         # if 'SIM' in dataset_name:
-        #     truth_one_sample_table = truth_attribution_table.loc[sample, :].to_frame().T
-        #     truth_table = truth_one_sample_table.loc[truth_one_sample_table.index.repeat(number_of_b_samples)]
-        #     stat_scores_tables.loc[sample, :] = calculate_stat_scores(signatures, attributions_per_sample_dict[sample], truth_table)
-        #     for signature in signatures_to_consider:
-        #         stat_scores_per_sig[signature].loc[sample, :] = calculate_stat_scores([signature], attributions_per_sample_dict[sample], truth_table)
+            # # alternative procedure (considering bootstrap but not CIs)
+            # truth_one_sample_table = truth_attribution_table.loc[sample, :].to_frame().T
+            # truth_table = truth_one_sample_table.loc[truth_one_sample_table.index.repeat(number_of_b_samples)]
+            # stat_scores_tables.loc[sample, :] = calculate_stat_scores(signatures, attributions_per_sample_dict[sample], truth_table)
+            # for signature in signatures_to_consider:
+            #     stat_scores_per_sig[signature].loc[sample, :] = calculate_stat_scores([signature], attributions_per_sample_dict[sample], truth_table)
+
+    # calculate simple metrics without bootstrap variations
+    if 'SIM' in dataset_name:
+        stat_scores_tables.loc[0, :] = calculate_stat_scores(signatures, central_attribution_table, truth_attribution_table)
+        for signature in signatures_to_consider:
+            stat_scores_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], central_attribution_table, truth_attribution_table)
 
     signatures_prevalences = signatures_prevalences/number_of_b_samples
 
@@ -340,9 +357,11 @@ if __name__ == '__main__':
         signatures_CPs.to_csv(output_folder + '/truth_studies/signatures_CPs_' + mutation_type + '.csv')
         sensitivity_thresholds.to_csv(output_folder + '/truth_studies/sensitivity_thresholds_' + mutation_type + '.csv')
         stat_scores_from_CI_tables.to_csv(output_folder + '/truth_studies/stat_scores_from_CI_tables_' + mutation_type + '.csv')
+        stat_scores_tables.to_csv(output_folder + '/truth_studies/stat_scores_tables_' + mutation_type + '.csv')
         write_data_to_JSON(signatures_CPs_dict, output_folder + '/truth_studies/signatures_CPs_dict_' + mutation_type + '.json')
         write_data_to_JSON(signatures_scores, output_folder + '/truth_studies/signatures_scores_' + mutation_type + '.json')
         write_data_to_JSON(stat_scores_from_CI_per_sig, output_folder + '/truth_studies/stat_scores_from_CI_per_sig_' + mutation_type + '.json')
+        write_data_to_JSON(stat_scores_per_sig, output_folder + '/truth_studies/stat_scores_per_sig_' + mutation_type + '.json')
         print('Truth studies outputs written.')
         print('Elapsed time:', datetime.now() - start_time)
 
