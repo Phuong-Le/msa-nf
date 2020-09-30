@@ -33,7 +33,7 @@ Dependencies so far are: *pandas*, *numpy*, *scipy* and *matplotlib*. If you don
 ```
 conda create -n MSA
 source activate MSA
-conda install pandas numpy scipy matplotlib
+conda install pandas numpy scipy matplotlib seaborn
 ```
 
 This only needs to be done once. Afterwards, just activate the environment whenever needed:
