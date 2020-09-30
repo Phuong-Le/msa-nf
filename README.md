@@ -28,7 +28,7 @@ In the [run_analysis.nf](run_analysis.nf) file various parameters can be specifi
 
 ### Setting up dependencies
 
-Dependencies so far are: *pandas*, *numpy*, *scipy* and *matplotlib*. If you don't have them, the easiest way is to set up the virtual environment using [conda](https://conda.io) package manager:
+Dependencies so far are: *pandas*, *numpy*, *scipy*, *matplotlib* and *seaborn*. If you don't have them, the easiest way is to set up the virtual environment using [conda](https://conda.io) package manager:
 
 ```
 conda create -n MSA

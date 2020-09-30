@@ -150,7 +150,7 @@ def calculate_similarity(first_sample, second_sample, metric='Cosine', normalise
         elif 'L3' in metric:
             if np.linalg.norm(first_sample, ord=3)!=0:
                 first_sample = first_sample/np.linalg.norm(first_sample, ord=3)
-	    if np.linalg.norm(second_sample, ord=3)!=0:
+            if np.linalg.norm(second_sample, ord=3)!=0:
                 second_sample = second_sample/np.linalg.norm(second_sample, ord=3)
         elif 'Chebyshev' in metric or 'chebyshev' in metric:
             if np.linalg.norm(first_sample, ord=np.inf)!=0:
