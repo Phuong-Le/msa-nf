@@ -17,16 +17,23 @@
 
 params.help = null
 
-log.info ""
-log.info "--------------------------------------------------------"
-log.info "      NEXTFLOW MUTATIONAL SIGNATURE ANALYSIS v1.0       "
-log.info "--------------------------------------------------------"
-log.info "Copyright (C) Sergey Senkin"
-log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
-log.info "This is free software, and you are welcome to redistribute it"
-log.info "under certain conditions; see LICENSE for details."
-log.info "--------------------------------------------------------"
-log.info ""
+log.info ''
+log.info '--------------------------------------------------------'
+log.info '              __  __  _____                             '
+log.info '             |  \\/  |/ ____|  /\\                      '
+log.info '             | \\  / | (___   /  \\                     '
+log.info '             | |\\/| |\\___ \\ / /\\ \\                 '
+log.info '             | |  | |____) / ____ \\                    '
+log.info '             |_|  |_|_____/_/    \\_\\                  '
+log.info '                                                        '
+log.info '          MUTATIONAL SIGNATURE ANALYSIS v1.1            '
+log.info '--------------------------------------------------------'
+log.info 'Copyright (C) Sergey Senkin'
+log.info 'This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE'
+log.info 'This is free software, and you are welcome to redistribute it'
+log.info 'under certain conditions; see LICENSE for details.'
+log.info '--------------------------------------------------------'
+log.info ''
 
 if (params.help) {
     log.info "--------------------------------------------------------"
@@ -89,6 +96,9 @@ suffix = (params.use_absolute_attributions) ? "abs_mutations" : 'weights'
 error_flag = (params.show_poisson_errors) ? "-e" : ''
 strands_flag = (params.show_strands) ? "-b" : ''
 nontranscribed_flag = (params.show_nontranscribed_region) ? "-n" : ''
+
+// add parameter values to log output (.nextflow.log)
+log.info params.collect { k,v -> "${k.padRight(34)}: $v" }.join("\n")
 
 process plot_input_spectra {
   publishDir "${params.plots_output_path}"
