@@ -8,7 +8,7 @@ This analysis pipeline will likely move to nf-core soon, where it will become mo
 
 Retrieve the code:
 ```
-git clone git@gitlab.com:s.senkin/MSA.git
+git clone https://gitlab.com/s.senkin/MSA.git
 cd MSA
 ```
 
