@@ -19,7 +19,7 @@ params.help = null
 
 log.info ''
 log.info '--------------------------------------------------------'
-log.info '              __  __  _____                             '
+log.info '              __   __  _____                             '
 log.info '             |  \\/  |/ ____|  /\\                      '
 log.info '             | \\  / | (___   /  \\                     '
 log.info '             | |\\/| |\\___ \\ / /\\ \\                 '
@@ -51,12 +51,20 @@ if (params.help) {
 log.info "help:                               ${params.help}"
 }
 
+// input data
 params.datasets = ['SIM_test']
 params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove SBS/DBS/ID if needed
 params.input_tables = "$baseDir/input_mutation_tables"
-params.signature_tables = "$baseDir/signature_tables"
 params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
 params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
+
+// output paths
+params.NNLS_output_path = "$baseDir/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
+params.plots_output_path = "$baseDir/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
+
+// signatures to use
+params.signature_tables = "$baseDir/signature_tables"
+params.signature_prefix = "sigRandom" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
 
 // optimisation flag and parameters
 params.optimised = false
@@ -81,13 +89,6 @@ params.use_absolute_attributions = false // use absolute mutation counts in boot
 
 // if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
 params.signature_attribution_thresholds = 0..20
-
-// output paths
-params.NNLS_output_path = "$baseDir/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
-params.plots_output_path = "$baseDir/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
-
-// signatures to use from signature_tables folder (e.g. sigProfiler, sigRandom)
-params.signature_prefix = "sigRandom"
 
 // helper flags for scripts (automatic based on parameters)
 optimised_flag = (params.optimised) ? "-x" : ''
@@ -304,7 +305,7 @@ process plot_bootstrap_attributions {
 
   input:
   set dataset, mutation_type from attribution_for_bootstrap_plots
-  file bootstrap_attributions from attributions_per_sample
+  file bootstrap_attributions from attributions_per_sample.collect()
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
@@ -328,7 +329,7 @@ process plot_metrics {
 
   input:
   set dataset, mutation_type from attribution_for_metrics
-  file prevalences from signature_prevalences
+  file prevalences from signature_prevalences.collect()
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
