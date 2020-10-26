@@ -86,8 +86,8 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (DBS, ID).")
-    elif mutation_type not in ['SBS', 'DBS', 'ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
+    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
 
     print("*"*50)
     print("Making tables for %s mutation type, %s dataset" % (mutation_type, dataset_name))
@@ -110,9 +110,7 @@ if __name__ == '__main__':
             signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), index_col=[0, 1, 2])
         else:
             raise ValueError("Context %i is not supported." % context)
-    elif mutation_type == 'DBS':
-        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-    elif mutation_type == 'ID':
+    else:
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
     if 'SIM' in dataset_name:
@@ -122,6 +120,8 @@ if __name__ == '__main__':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.dinucs.weights.csv' % dataset_name, index_col=0)
         elif mutation_type == 'ID':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
+        elif mutation_type == 'SV':
+            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.SV.weights.csv' % dataset_name, index_col=0)
 
     if args.abs_numbers:
         central_attribution_table = central_attribution_table_abs

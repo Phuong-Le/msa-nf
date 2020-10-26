@@ -142,8 +142,8 @@ if __name__ == '__main__':
 
     scores = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'F1', 'MCC']
 
-    if mutation_type not in ['SBS', 'DBS', 'ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
+    if mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
 
     if not input_attributions_folder:
         parser.error("Please specify the input path for reconstructed weights tables using -i option.")

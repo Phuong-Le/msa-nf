@@ -92,8 +92,8 @@ if __name__ == '__main__':
         print('Converting signature table', options.reindex_signatures)
 
     for mutation_type in mutation_types:
-        if mutation_type not in ['SBS', 'DBS', 'ID']:
-            raise ValueError("Unsupported mutation type: %s. Supported types: SBS, DBS, ID" % mutation_type)
+        if mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
+            raise ValueError("Unsupported mutation type: %s. Supported types: SBS, DBS, ID, SV" % mutation_type)
 
     signatures = {}
     for mutation_type in mutation_types:
@@ -117,6 +117,8 @@ if __name__ == '__main__':
             context = 78
         elif mutation_type=='ID':
             context = 83
+        elif mutation_type=='SV':
+            context = 32
         print('Assuming %s mutation type' % mutation_type, '(%i context)' % context)
         if mutation_type=='SBS':
             reindexed_signatures = convert_index(signature_table_to_reindex, context=context)
@@ -162,6 +164,8 @@ if __name__ == '__main__':
                         continue
                     if mutation_type=='ID' and not '83' in file:
                         continue
+                    if mutation_type=='SV' and not '32' in file:
+                        continue
                     # simply overwrite index for other mutation types (equality assumption)
                     print('Converting:', mutation_type, file)
                     input_table = pd.read_csv(file, sep='\t', index_col=0)
@@ -170,5 +174,7 @@ if __name__ == '__main__':
                         new_filename = output_path + '/%s/WGS_%s.dinucs.csv' % (dataset_name, dataset_name)
                     elif mutation_type == 'ID':
                         new_filename = output_path + '/%s/WGS_%s.indels.csv' % (dataset_name, dataset_name)
+                    elif mutation_type == 'SV':
+                        new_filename = output_path + '/%s/WGS_%s.SV.csv' % (dataset_name, dataset_name)
                     input_table.to_csv(new_filename, sep = ',')
         print('Done, please check the outputs:', output_path + '/' + dataset_name)
