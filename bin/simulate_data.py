@@ -126,7 +126,7 @@ if __name__ == '__main__':
     if random_signatures:
         signatures_prefix = 'sigRandom'
     else:
-        signatures_prefix = 'sigProfilerESCC_LP'
+        signatures_prefix = 'sigProfiler'
 
     if mutation_type=='SBS':
         output_filename = '%s/WGS_%s.%i.csv' % (output_path, dataset_name, context)
