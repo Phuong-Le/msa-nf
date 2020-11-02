@@ -27,12 +27,12 @@ echo "Signature prefix used: ${signature_prefix}"
 
 # SBS: 96 context
 echo "Running SBS attribution (96 context)..."
-nohup python scripts/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 96 &> logs/${dataset}_NNLS_SBS_96.log &
-nohup python scripts/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 96 -x &> logs/${dataset}_NNLS_SBS_96_optimised.log &
+nohup python bin/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 96 &> logs/${dataset}_NNLS_SBS_96.log &
+nohup python bin/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 96 -x &> logs/${dataset}_NNLS_SBS_96_optimised.log &
 # SBS: 192 context
 echo "Running SBS attribution (192 context)..."
-nohup python scripts/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 192 &> logs/${dataset}_NNLS_SBS_192.log &
-nohup python scripts/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 192 -x &> logs/${dataset}_NNLS_SBS_192_optimised.log &
+nohup python bin/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 192 &> logs/${dataset}_NNLS_SBS_192.log &
+nohup python bin/run_NNLS.py -d ${dataset} -n ${n} -p ${signature_prefix} -s ${signatures_path} -i ${input_path} -t SBS -c 192 -x &> logs/${dataset}_NNLS_SBS_192_optimised.log &
 wait;
 
 echo "All done!"

@@ -67,7 +67,7 @@ process run_NNLS {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x --add_suffix
+  python $PWD/bin/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x --add_suffix
   """
 }
 
@@ -82,6 +82,6 @@ process run_NNLS_TSB {
 
   script:
   """
-  python $PWD/scripts/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x -c 192 --add_suffix
+  python $PWD/bin/run_NNLS.py -d SIM -t SBS -W ${weak_threshold} -p ${params.signature_prefix} -S ${strong_threshold} -i ${params.input_tables} -s ${params.input_signatures} -o "./" -x -c 192 --add_suffix
   """
 }
