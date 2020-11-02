@@ -1,23 +1,15 @@
 # Mutational Signature Attribution pipeline
 
-[logo]: MSA.png "MSA"
+![logo](MSA.png)
 
 Mutational signature attribution analysis, including code used for optimisation study with simulated data.
-
-## Getting started
-
-Retrieve the code:
-```
-git clone https://gitlab.com/s.senkin/MSA.git
-cd MSA
-```
 
 ## Running with Nextflow
 The best way to run the code is by using [Nextflow](https://www.nextflow.io/).
 Once you have installed Nextflow, run it locally or on your favourite cluster:
 
 ```
-nextflow run run_analysis.nf -profile docker
+nextflow run https://gitlab.com/s.senkin/MSA -profile docker
 ```
 
 If you don't have [docker](https://www.docker.com/) installed, you can also use [conda](https://conda.io) or [singularity](https://sylabs.io/singularity/) profiles.
@@ -25,6 +17,14 @@ The pipeline should run everything and produce all the results automatically.
 In the [run_analysis.nf](run_analysis.nf) file various parameters can be specified. For example, switching *SIM* dataset to *SIMrand* and *params.signature_prefix* to *sigRandom* would allow running the pipeline for a sample dataset generated with random signatures (more info below).
 
 ## Running manually
+
+### Getting started
+
+Retrieve the code:
+```
+git clone https://gitlab.com/s.senkin/MSA.git
+cd MSA
+```
 
 ### Setting up dependencies
 
