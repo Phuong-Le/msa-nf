@@ -1,8 +1,8 @@
-# Mutational Signature Attribution
+# Mutational Signature Attribution pipeline
+
+[logo]: MSA.png "MSA"
 
 Mutational signature attribution analysis, including code used for optimisation study with simulated data.
-
-This analysis pipeline will likely move to nf-core soon, where it will become more standardised and user-friendly.
 
 ## Getting started
 
@@ -12,16 +12,15 @@ git clone https://gitlab.com/s.senkin/MSA.git
 cd MSA
 ```
 
-
 ## Running with Nextflow
-The easiest way to run the code is by using [Nextflow](https://www.nextflow.io/).
+The best way to run the code is by using [Nextflow](https://www.nextflow.io/).
 Once you have installed Nextflow, run it locally or on your favourite cluster:
 
 ```
 nextflow run run_analysis.nf -profile docker
 ```
 
-If you don't have *docker* installed, you can also use *conda* or *singularity* profiles.
+If you don't have [docker](https://www.docker.com/) installed, you can also use [conda](https://conda.io) or [singularity](https://sylabs.io/singularity/) profiles.
 The pipeline should run everything and produce all the results automatically.
 In the [run_analysis.nf](run_analysis.nf) file various parameters can be specified. For example, switching *SIM* dataset to *SIMrand* and *params.signature_prefix* to *sigRandom* would allow running the pipeline for a sample dataset generated with random signatures (more info below).
 
@@ -32,15 +31,13 @@ In the [run_analysis.nf](run_analysis.nf) file various parameters can be specifi
 Dependencies so far are: *pandas*, *numpy*, *scipy*, *matplotlib* and *seaborn*. If you don't have them, the easiest way is to set up the virtual environment using [conda](https://conda.io) package manager:
 
 ```
-conda create -n MSA
-source activate MSA
-conda install pandas numpy scipy matplotlib seaborn
+conda env create -f environment.yml
 ```
 
 This only needs to be done once. Afterwards, just activate the environment whenever needed:
 
 ```
-source activate MSA
+source activate msa
 ```
 
 

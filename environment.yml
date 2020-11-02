@@ -1,4 +1,4 @@
-name: environment
+name: msa
 channels:
   - defaults
 dependencies:
