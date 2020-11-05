@@ -6,15 +6,47 @@ Mutational signature attribution analysis, including code used for optimisation 
 
 ## Running with Nextflow
 The best way to run the code is by using [Nextflow](https://www.nextflow.io/).
-Once you have installed Nextflow, run it locally or on your favourite cluster:
+Once you have installed Nextflow, run the test job locally or on your favourite cluster:
 
 ```
 nextflow run https://gitlab.com/s.senkin/MSA -profile docker
 ```
 
 If you don't have [docker](https://www.docker.com/) installed, you can also use [conda](https://conda.io) or [singularity](https://sylabs.io/singularity/) profiles.
-The pipeline should run everything and produce all the results automatically.
-In the [run_analysis.nf](run_analysis.nf) file various parameters can be specified. For example, switching *SIM* dataset to *SIMrand* and *params.signature_prefix* to *sigRandom* would allow running the pipeline for a sample dataset generated with random signatures (more info below).
+The pipeline should run everything and produce all the results automatically. You can retrieve the code ([see below](https://gitlab.com/s.senkin/MSA#getting-started)) in order to adjust the inputs and parameters. In the [run_analysis.nf](run_analysis.nf) file various parameters can be specified.
+
+## Running on SigProfiler output
+
+MSA natively support [SigProfilerExtractor](https://github.com/AlexandrovLab/SigProfilerExtractor) and [SigProfilerMatrixGenerator](https://github.com/AlexandrovLab/SigProfilerMatrixGenerator) outputs.
+
+```
+nextflow run https://gitlab.com/s.senkin/MSA -profile docker --SP_matrix_generator_output_path path/to/SP_ME/ --SP_extractor_output_path path/to/SP/
+```
+
+## Options
+
+| Name  | Default value | Description |
+|-----------|-------------|-------------|
+| --help | null | print usage and optional parameters |
+| --output_path | "." | output path for plots and tables |
+| --number_of_samples | -1 | number of samples to analyse (-1 means all available) |
+| --SP_matrix_generator_output_path | null | use SigProfilerMatrixGenerator output from specified path |
+| --SP_extractor_output_path | null | use SigProfilerExtractor output from specified path to attribute signatures extracted by SigProfiler |
+| --COSMIC_signatures | false | if set to true, COSMIC signatures are used form SigProfiler output, otherwise de-novo ones are used |
+| --SBS_context | 96 | SBS context to use (96, 192, and 288 context matrices can be provided) |
+| --perform_bootstrapping | true | perform parametric bootstrapping to extract confidence intervals |
+| --number_of_bootstrapped_samples | 10 | number of bootstrap samples variations (at least 100 is recommended) |
+| --bootstrap_method | "binomial" | method of parametric bootstrap (binomial, multinomial, residuals, classic, bootstrap_residuals) |
+| --optimised | false | Perform signature optimisation for NNLS attribution method |
+| --optimisation_strategy | "removal" | Parameter defining the strategy: 'removal' (default), 'addition' or 'add-remove', determining the method of executing signature addition and/or removal loops |
+| --weak_threshold | 0.02 | L2 similarity decrease threshold to exclude weakest signatures |
+| --strong_threshold | 0.02 | L2 similarity increase threshold to include strongest signatures |
+| --plot_signatures | true | plot provided signatures |
+| --plot_input_spectra | true | plot mutation spectra for provided samples |
+| --plot_fitted_spectra | true | plot fitted mutation spectra using NNLS output |
+| --plot_residuals | true | plot residuals spectra (fitted-input) |
+| --show_poisson_errors | true | show Poisson errors in spectra plots |
+
 
 ## Running manually
 
