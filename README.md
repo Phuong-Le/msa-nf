@@ -78,6 +78,7 @@ cd MSA
 
 ### Setting up dependencies
 
+If you can not run *nextflow*, you can still run some basic analysis manually (scripts in the *./bin* folder).
 Dependencies so far are: *pandas*, *numpy*, *scipy*, *matplotlib* and *seaborn*. If you don't have them, the easiest way is to set up the virtual environment using [conda](https://conda.io) package manager:
 
 ```
@@ -90,6 +91,7 @@ This only needs to be done once. Afterwards, just activate the environment whene
 source activate msa
 ```
 
+Alternatively, you can use *docker* yourself with the *Dockerfile* provided, or use ready-made images ([docker](https://hub.docker.com/r/ssenkin/msa/tags) or [singularity](https://cloud.sylabs.io/library/ssenkin/default/msa)).
 
 ### Simulating data
 
