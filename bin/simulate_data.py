@@ -20,8 +20,10 @@ signatures_to_generate = {
     'SBS18':[100, 100],
     'SBS21':[0, 50],
     'SBS40':[200, 300],
-    # 'ID1':[140,270],
-    # 'ID2':[2000,1000],
+    'DBS1':[140,270],
+    'DBS2':[2000,1000],
+    'ID1':[140,270],
+    'ID2':[2000,1000]
 }
 
 def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total', savepath = './burden.pdf'):
@@ -183,6 +185,8 @@ if __name__ == '__main__':
         else:
             # generate burdens for each signature from the 'signatures_to_generate' dictionary
             for signature in signatures_to_generate.keys():
+                if mutation_type not in signature:
+                    continue
                 mu = signatures_to_generate[signature][0]
                 sigma = signatures_to_generate[signature][1]
                 # draw burdens from normal distribution
