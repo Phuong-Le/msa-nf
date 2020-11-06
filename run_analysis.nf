@@ -19,8 +19,8 @@
 params.SP_extractor_output_path = null // optional path to SigProfilerExtractor output
 params.SP_matrix_generator_output_path = null // optional path to SigProfilerMatrixGenerator output
 params.COSMIC_signatures = false // if set to true, COSMIC signatures are used form SigProfiler output, otherwise de-novo ones are used
-params.datasets = ['SIM_test']
-params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove SBS/DBS/ID if needed
+params.dataset = ['SIM_test'] // several datasets can be provided as long as input mutation tables are available
+params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove mutation types if needed
 params.input_tables = "$baseDir/input_mutation_tables"
 params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
 params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
@@ -32,7 +32,7 @@ params.plots_output_path = params.output_path + "/plots"
 
 // signatures to use
 params.signature_tables = "$baseDir/signature_tables"
-params.signature_prefix = "sigRandom" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
+params.signature_prefix = "sigProfiler" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
 
 // optimisation flag and parameters
 params.optimised = false
@@ -142,7 +142,7 @@ if (params.SP_matrix_generator_output_path) {
     publishDir "${params.input_tables}", mode: 'move', overwrite: true
 
     input:
-    each dataset from params.datasets
+    each dataset from params.dataset
     path input_path from params.SP_matrix_generator_output_path
 
     output:
@@ -168,7 +168,7 @@ process plot_input_spectra {
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
   file inputs from converted_SP_to_MSA_for_spectra
 
   output:
@@ -194,7 +194,7 @@ process plot_signatures {
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
   file signatures from signatures_for_spectra
 
   output:
@@ -219,7 +219,7 @@ process run_NNLS_normal {
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
   file inputs from converted_SP_to_MSA_for_NNLS
   file signatures from signatures_for_NNLS
 
@@ -305,7 +305,7 @@ process run_NNLS_bootstrapping {
   input:
   each i from 1..params.number_of_bootstrapped_samples
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
   file inputs from converted_SP_to_MSA_for_NNLS_bootstrap
   file signatures from signatures_for_NNLS_bootstrap
   // file residuals from central_NNLS_residuals // uncomment in using residuals bootstrapping
@@ -420,7 +420,7 @@ if (params.perform_bootstrapping) {
 
     input:
     file output from final_outputs_post_bootstrap.collect()
-    each dataset from params.datasets
+    each dataset from params.dataset
     path output_path from "$baseDir/output_tables"
 
     output:
@@ -439,7 +439,7 @@ if (params.perform_bootstrapping) {
 
     input:
     file output from final_outputs_no_bootstrap.collect()
-    each dataset from params.datasets
+    each dataset from params.dataset
     path output_path from "$baseDir/output_tables"
 
     output:
