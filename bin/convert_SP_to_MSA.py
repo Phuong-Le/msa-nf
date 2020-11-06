@@ -1,8 +1,8 @@
 """ convert_SP_to_MSA.py
-Module to convert mutation and signature tables from SigProfiler output to
-comma-separated, multi-indexed tables. Output files are saved in MSA directories
-specifiable by -o flag for mutation tables and -s for signatures.
-Reindexing according to existing signature tables specified using -s and -p flags.
+Module to convert mutation tables from SigProfilerMatrixGenerator or signatures
+tables from SigProfilerExtractor output paths specified by -i parameter, to
+comma-separated, multi-indexed tables. Output files are saved in directory
+specifiable by -o flag.
 """
 
 import os
@@ -51,15 +51,19 @@ def convert_index(input_dataframe, context=96):
 if __name__ == '__main__':
     parser = ArgumentParser(description='Convert SigProfilerMatrixGenerator output to MSA format')
     parser.add_argument("-i", "--input_folder", dest="input_path",
-                      help="set path to SigProfiler output with mutation tables")
+                      help="set path to SigProfiler output (matrix generator or extractor)")
+    parser.add_argument("-S", "--reindex_signatures", dest="reindex_signatures", action="store_true",
+                      help="reindex signature tables (assume SP extractor output)")
+    parser.add_argument("-C", "--COSMIC", dest="COSMIC", action="store_true",
+                      help="assume COSMIC signatures (forced 96 context in SBS)")
     parser.add_argument("-d", "--dataset_name", dest="dataset_name", default='',
                         help="set dataset name to use in converted filenames")
     parser.add_argument("-t", "--mutation_types", nargs='+', dest="mutation_types", default=['SBS','DBS','ID'],
                       help="set mutation types, e.g. -t SBS DBS ID (default)")
     parser.add_argument("-c", "--contexts", nargs='+', dest="contexts", type=int, default=[96, 288],
                       help="set SBS contexts e.g. -c 96 288 (default). Supported contexts: 96, 192, 288")
-    parser.add_argument("-o", "--output_path", dest="output_path", default='input_mutation_tables',
-                        help="set output path for converted mutation tables (default: input_mutation_tables)")
+    parser.add_argument("-o", "--output_path", dest="output_path", default='./',
+                        help="set output path for converted tables (default: ./)")
     # parser.add_argument("-e", "--exome", dest="exome", action="store_true",
     #                   help="Treat input matrices of the exome regions of the genome, otherwise assumme WGS")
     parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables',
@@ -68,8 +72,6 @@ if __name__ == '__main__':
                       help="set prefix in signature filenames to extract indexes (sigProfiler by default)")
     parser.add_argument("-n", "--reindexed_signatures_prefix", dest="reindexed_signatures_prefix", default='sigProfilerNew',
                       help="set prefix for reindexed signatures filenames (sigProfilerNew by default)")
-    parser.add_argument("-S", "--reindex_signatures", dest="reindex_signatures", default=None,
-                      help="reindex signature tables instead of mutation tables (provide full path to file)")
 
     options = parser.parse_args()
     input_path = options.input_path
@@ -81,15 +83,20 @@ if __name__ == '__main__':
     input_signatures_prefix = options.input_signatures_prefix
     reindexed_signatures_prefix = options.reindexed_signatures_prefix
 
+    if not input_path:
+        raise ValueError("Please specify the input path to SigProfiler tables using -i flag.")
+
     if not options.reindex_signatures:
-        if not input_path:
-            raise ValueError("Please specify the input path to SigProfiler tables using -i flag. Alternatively, use -S flag to reindex a signature table (see -h for help)")
         if not dataset_name:
             raise ValueError("Please specify an arbitrary dataset name for use in MSA pipeline execution (see -h for help)")
         print('Converting mutation tables for dataset', dataset_name, ' mutation types', mutation_types, ', considering SBS contexts', contexts)
         print('SigProfilerMatrixGenerator output to parse:', input_path)
     else:
-        print('Converting signature table', options.reindex_signatures)
+        if options.COSMIC:
+            signatures_type = 'COSMIC'
+        else:
+            signatures_type = 'De_Novo'
+        print('Converting %s signature tables from SigProfilerExtractor output %s' % (signatures_type, input_path))
 
     for mutation_type in mutation_types:
         if mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
@@ -110,37 +117,53 @@ if __name__ == '__main__':
 
     if options.reindex_signatures:
         # reindex signatures
-        signature_table_to_reindex = pd.read_csv(options.reindex_signatures, sep='\t', index_col=0)
-        mutation_type = mutation_types[0]
-        context = contexts[0]
-        if mutation_type=='DBS':
-            context = 78
-        elif mutation_type=='ID':
-            context = 83
-        elif mutation_type=='SV':
-            context = 32
-        print('Assuming %s mutation type' % mutation_type, '(%i context)' % context)
-        if mutation_type=='SBS':
-            reindexed_signatures = convert_index(signature_table_to_reindex, context=context)
-            template_signatures = signatures[mutation_type + str(context)]
-            reindexed_signatures = reindexed_signatures.reindex(template_signatures.index)
-            compare_index(reindexed_signatures, template_signatures)
-        else:
-            # simply overwrite index for other mutation types (equality assumption)
-            reindexed_signatures = signature_table_to_reindex
-            template_signatures = signatures[mutation_type]
-            reindexed_signatures.index = template_signatures.index
-            compare_index(reindexed_signatures, template_signatures)
-        reindexed_signatures_filename = '%s/%s_%s_%i_signatures.csv' % (signature_tables_path, reindexed_signatures_prefix, mutation_type, context)
-        if mutation_type!='SBS' or (mutation_type=='SBS' and context==96):
-            reindexed_signatures_filename = reindexed_signatures_filename.replace('_%i' % context,'')
-        reindexed_signatures.to_csv(reindexed_signatures_filename, sep = ',')
-        print('Done. Check the output signature table:', reindexed_signatures_filename)
+        for mutation_type in mutation_types:
+            input_signatures = glob.glob(input_path + '/%s*/Suggested_Solution/%s*/Signatures/*Signatures.txt' % (mutation_type, signatures_type))
+            if not input_signatures:
+                raise ValueError("Can't find any signature tables of type %s, mutation type %s in input path %s" % (mutation_type, signatures_type, input_path) )
+            for signature_table in input_signatures:
+                if mutation_type=='SBS':
+                    for context in contexts:
+                        if not str(context) in signature_table:
+                            continue
+                        signature_table_to_reindex = pd.read_csv(signature_table, sep='\t', index_col=0)
+                        print('Converting signature table %s (%s mutation type, %i context)' % (signature_table, mutation_type, context))
+                        template_context = context if not options.COSMIC else 96
+                        reindexed_signatures = convert_index(signature_table_to_reindex, context=template_context)
+                        template_signatures = signatures[mutation_type + str(template_context)]
+                        reindexed_signatures = reindexed_signatures.reindex(template_signatures.index)
+                        compare_index(reindexed_signatures, template_signatures)
+                        reindexed_signatures_filename = '%s/%s_%s_%i_signatures.csv' % (output_path, reindexed_signatures_prefix, mutation_type, context)
+                        if context==96:
+                            reindexed_signatures_filename = reindexed_signatures_filename.replace('_%i' % context,'')
+                        reindexed_signatures.to_csv(reindexed_signatures_filename, sep = ',')
+                        print('Done. Check the output signature table:', reindexed_signatures_filename)
+                else:
+                    if mutation_type=='DBS':
+                        context = 78
+                    elif mutation_type=='ID':
+                        context = 83
+                    elif mutation_type=='SV':
+                        context = 32
+                    if not str(context) in signature_table:
+                        continue
+                    signature_table_to_reindex = pd.read_csv(signature_table, sep='\t', index_col=0)
+                    print('Converting signature table %s (%s mutation type, %i context)' % (signature_table, mutation_type, context))
+                    # simply overwrite index for non-SBS mutation types
+                    reindexed_signatures = signature_table_to_reindex
+                    template_signatures = signatures[mutation_type]
+                    reindexed_signatures.index = template_signatures.index
+                    compare_index(reindexed_signatures, template_signatures)
+                    reindexed_signatures_filename = '%s/%s_%s_signatures.csv' % (output_path, reindexed_signatures_prefix, mutation_type)
+                    reindexed_signatures.to_csv(reindexed_signatures_filename, sep = ',')
+                    print('Done. Check the output signature table:', reindexed_signatures_filename)
     else:
         # reindex mutation tables
         make_folder_if_not_exists(output_path + '/' + dataset_name)
         for mutation_type in mutation_types:
             input_files = glob.glob(input_path + '/%s/*%s*' % (mutation_type, mutation_type))
+            if not input_files:
+                raise ValueError("Can't find any files of mutation type %s in input path %s" % (mutation_type, input_path) )
             for file in input_files:
                 if mutation_type=='SBS':
                     for context in contexts:

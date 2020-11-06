@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-// Copyright (C) 2018 Sergey Senkin
+// Copyright (C) 2020 Sergey Senkin
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,6 +14,59 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+// input data
+params.SP_extractor_output_path = null // optional path to SigProfilerExtractor output
+params.SP_matrix_generator_output_path = null // optional path to SigProfilerMatrixGenerator output
+params.COSMIC_signatures = false // if set to true, COSMIC signatures are used form SigProfiler output, otherwise de-novo ones are used
+params.dataset = ['SIM_test'] // several datasets can be provided as long as input mutation tables are available
+params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove mutation types if needed
+params.input_tables = "$baseDir/input_mutation_tables"
+params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
+params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
+
+// output paths
+params.output_path = "."
+params.tables_output_path = params.output_path + "/output_tables"
+params.plots_output_path = params.output_path + "/plots"
+
+// signatures to use
+params.signature_tables = "$baseDir/signature_tables"
+params.signature_prefix = "sigProfiler" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
+
+// optimisation flag and parameters
+params.optimised = false
+params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
+params.weak_threshold = 0.02
+params.strong_threshold = 0.02
+
+// plotting flags
+params.plot_signatures = true
+params.plot_input_spectra = true
+params.plot_fitted_spectra = true
+params.plot_residuals = true
+params.show_poisson_errors = true
+params.show_strands = false // only works with higher contexts (192, 288)
+params.show_nontranscribed_region = false // only wortks with higher contexts (288)
+
+// bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
+params.perform_bootstrapping = true
+params.bootstrap_method = "binomial"
+params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
+params.use_absolute_attributions = false // use absolute mutation counts in bootstrap analysis (relative by default)
+
+// if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
+params.signature_attribution_thresholds = 0..20
+
+// helper flags for scripts (automatic based on parameters)
+optimised_flag = (params.optimised) ? "-x" : ''
+abs_flag = (params.use_absolute_attributions) ? "-a" : ''
+suffix = (params.use_absolute_attributions) ? "abs_mutations" : 'weights'
+error_flag = (params.show_poisson_errors) ? "-e" : ''
+strands_flag = (params.show_strands) ? "-b" : ''
+nontranscribed_flag = (params.show_nontranscribed_region) ? "-n" : ''
+COSMIC_flag = (params.COSMIC_signatures) ? "-C" : ''
+signature_prefix = (params.SP_extractor_output_path) ? params.signature_prefix + "_conv" : params.signature_prefix
 
 params.help = null
 
@@ -51,62 +104,72 @@ if (params.help) {
 log.info "help:                               ${params.help}"
 }
 
-// input data
-params.datasets = ['SIM_test']
-params.mutation_types = ['SBS', 'DBS', 'ID'] // add or remove SBS/DBS/ID if needed
-params.input_tables = "$baseDir/input_mutation_tables"
-params.SBS_context = 96 // 96, 192, and 288 context matrices can be provided (SBS only)
-params.number_of_samples = -1 // number of samples to analyse (-1 means all available)
-
-// output paths
-params.NNLS_output_path = "$baseDir/output_tables" //_" + params.weak_threshold + "_" + params.strong_threshold
-params.plots_output_path = "$baseDir/plots" //_" + params.weak_threshold + "_" + params.strong_threshold
-
-// signatures to use
-params.signature_tables = "$baseDir/signature_tables"
-params.signature_prefix = "sigRandom" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
-
-// optimisation flag and parameters
-params.optimised = false
-params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
-params.weak_threshold = 0.02
-params.strong_threshold = 0.02
-
-// plotting flags
-params.plot_signatures = true
-params.plot_input_spectra = true
-params.plot_fitted_spectra = true
-params.plot_residuals = true
-params.show_poisson_errors = true
-params.show_strands = false // only works with higher contexts (192, 288)
-params.show_nontranscribed_region = false // only wortks with higher contexts (288)
-
-// bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
-params.perform_bootstrapping = true
-params.bootstrap_method = "binomial"
-params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
-params.use_absolute_attributions = false // use absolute mutation counts in bootstrap analysis (relative by default)
-
-// if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
-params.signature_attribution_thresholds = 0..20
-
-// helper flags for scripts (automatic based on parameters)
-optimised_flag = (params.optimised) ? "-x" : ''
-abs_flag = (params.use_absolute_attributions) ? "-a" : ''
-suffix = (params.use_absolute_attributions) ? "abs_mutations" : 'weights'
-error_flag = (params.show_poisson_errors) ? "-e" : ''
-strands_flag = (params.show_strands) ? "-b" : ''
-nontranscribed_flag = (params.show_nontranscribed_region) ? "-n" : ''
-
 // add parameter values to log output (.nextflow.log)
 log.info params.collect { k,v -> "${k.padRight(34)}: $v" }.join("\n")
+
+if (params.SP_extractor_output_path) {
+  process convert_signature_tables {
+    publishDir "${params.signature_tables}", mode: 'move', overwrite: true
+
+    input:
+    path input_path from params.SP_extractor_output_path
+
+    output:
+    file '*.csv' into signatures_for_spectra
+    file '*.csv' into signatures_for_NNLS
+    file '*.csv' into signatures_for_NNLS_bootstrap
+    file '*.csv' into signatures_for_make_bootstrap_tables
+    file '*.csv' into signatures_for_plot_bootstrap
+
+    script:
+    """
+    python $baseDir/bin/convert_SP_to_MSA.py -S -t ${params.mutation_types.join(' ')} \
+                                             -n ${signature_prefix} ${COSMIC_flag} \
+                                             -i ${input_path} -s ${params.signature_tables} -o "./"
+    """
+  }
+} else {
+  // placeholder channels for execution from existing input matrices
+  signatures_for_spectra = Channel.value(1)
+  signatures_for_NNLS = Channel.value(1)
+  signatures_for_NNLS_bootstrap = Channel.value(1)
+  signatures_for_make_bootstrap_tables = Channel.value(1)
+  signatures_for_plot_bootstrap = Channel.value(1)
+}
+
+if (params.SP_matrix_generator_output_path) {
+  process convert_input_data {
+    publishDir "${params.input_tables}", mode: 'move', overwrite: true
+
+    input:
+    each dataset from params.dataset
+    path input_path from params.SP_matrix_generator_output_path
+
+    output:
+    file '*/*.csv' into converted_SP_to_MSA_for_spectra
+    file '*/*.csv' into converted_SP_to_MSA_for_NNLS
+    file '*/*.csv' into converted_SP_to_MSA_for_NNLS_bootstrap
+
+    script:
+    """
+    python $baseDir/bin/convert_SP_to_MSA.py -d ${dataset} -t ${params.mutation_types.join(' ')} \
+                                             -i ${input_path} -s ${params.signature_tables} -o "./"
+    """
+  }
+} else {
+  // placeholder channels for execution from existing input matrices
+  converted_SP_to_MSA_for_spectra = Channel.value(1)
+  converted_SP_to_MSA_for_NNLS = Channel.value(1)
+  converted_SP_to_MSA_for_NNLS_bootstrap = Channel.value(1)
+}
 
 process plot_input_spectra {
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
+  file inputs from converted_SP_to_MSA_for_spectra
 
   output:
   file '*/*/*.pdf' optional true
@@ -131,7 +194,8 @@ process plot_signatures {
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
+  file signatures from signatures_for_spectra
 
   output:
   file '*/*/*.pdf' optional true
@@ -145,20 +209,22 @@ process plot_signatures {
   script:
   """
   python $baseDir/bin/plot_mutation_spectra.py -S -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} \
-                                               -p ${params.signature_prefix} -s ${params.signature_tables} \
+                                               -p ${signature_prefix} -s ${params.signature_tables} \
                                                -r ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
 
 process run_NNLS_normal {
-  publishDir "${params.NNLS_output_path}", mode: 'copy'
+  publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
+  file inputs from converted_SP_to_MSA_for_NNLS
+  file signatures from signatures_for_NNLS
 
   output:
-  file("./${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv")
+  file("./${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv") into final_outputs_no_bootstrap
   file("./${dataset}/output_${dataset}_${mutation_type}_weights_table.csv")
   file("./${dataset}/output_${dataset}_${mutation_type}_stat_info.csv")
   file("./${dataset}/output_${dataset}_${mutation_type}_fitted_values.csv")
@@ -171,17 +237,10 @@ process run_NNLS_normal {
 
   script:
   """
-  mkdir -p ${params.NNLS_output_path}/${dataset}
-  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "SBS" ]] && \
-    cp ${params.input_tables}/${dataset}/WGS_${dataset}.${params.SBS_context}.weights.csv ${params.NNLS_output_path}/${dataset}/
-  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "DBS" ]] && \
-    cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv ${params.NNLS_output_path}/${dataset}/
-  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
-    cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv ${params.NNLS_output_path}/${dataset}/
   python $baseDir/bin/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   --optimisation_strategy ${params.optimisation_strategy} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
-                                  -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
+                                  -p ${signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   cp ${dataset}/output_${dataset}_${mutation_type}_residuals.csv ${params.input_tables}/${dataset}/
   cp ${dataset}/output_${dataset}_${mutation_type}_fitted_values.csv ${params.input_tables}/${dataset}/
   """
@@ -206,13 +265,13 @@ process plot_fitted_spectra {
   script:
   """
   python $baseDir/bin/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   python $baseDir/bin/plot_mutation_spectra.py -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -r -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   python $baseDir/bin/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   python $baseDir/bin/plot_mutation_spectra.py -C -f -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -r -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -r -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
 
@@ -234,22 +293,21 @@ process plot_residuals {
   script:
   """
   python $baseDir/bin/plot_mutation_spectra.py -H -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   python $baseDir/bin/plot_mutation_spectra.py -C -R -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} --number ${params.number_of_samples} \
-                                                -i ${params.NNLS_output_path} ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
+                                                -i $baseDir/output_tables ${error_flag} ${strands_flag} ${nontranscribed_flag} -o "./"
   """
 }
 
-// plot errors from bootstrap, add stat.info on plots
-
-
 process run_NNLS_bootstrapping {
-  publishDir "${params.NNLS_output_path}", mode: 'copy'
+  publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
   each i from 1..params.number_of_bootstrapped_samples
   each mutation_type from params.mutation_types
-  each dataset from params.datasets
+  each dataset from params.dataset
+  file inputs from converted_SP_to_MSA_for_NNLS_bootstrap
+  file signatures from signatures_for_NNLS_bootstrap
   // file residuals from central_NNLS_residuals // uncomment in using residuals bootstrapping
 
   output:
@@ -262,11 +320,10 @@ process run_NNLS_bootstrapping {
 
   script:
   """
-  pwd
   python $baseDir/bin/run_NNLS.py -B -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
                                   --optimisation_strategy ${params.optimisation_strategy} --bootstrap_method ${params.bootstrap_method} \
                                   -W ${params.weak_threshold} -S ${params.strong_threshold} -n ${params.number_of_samples} \
-                                  -p ${params.signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
+                                  -p ${signature_prefix} -i ${params.input_tables} -s ${params.signature_tables} -o "./"
   mkdir -p ${dataset}/bootstrap_output
   mv ${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv ${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv
   mv ${dataset}/output_${dataset}_${mutation_type}_weights_table.csv ${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv
@@ -275,17 +332,20 @@ process run_NNLS_bootstrapping {
 }
 
 process make_bootstrap_tables {
-  publishDir "${params.NNLS_output_path}", mode: 'copy'
+  publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
   set dataset, mutation_type from attribution_for_tables
   file bootstrap_weights from bootstrap_output_tables.collect()
+  file signatures from signatures_for_make_bootstrap_tables
 
   output:
+  file("./${dataset}/CIs_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
   file("./${dataset}/signatures_prevalences_${mutation_type}.csv") into signature_prevalences
   file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
+  file("./${dataset}/attributions_per_signature_${mutation_type}_bootstrap_output_${suffix}.json")
+  file("./${dataset}/stat_metrics_${mutation_type}_bootstrap_output_${suffix}.json")
   file '*/*.csv'
-  file '*/*.json'
   file '*/truth_studies/*.csv' optional true
   file '*/truth_studies/*.json' optional true
 
@@ -294,19 +354,27 @@ process make_bootstrap_tables {
 
   script:
   """
-  python $baseDir/bin/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
+  mkdir -p $baseDir/output_tables/${dataset}
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "SBS" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.${params.SBS_context}.weights.csv $baseDir/output_tables/${dataset}/
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "DBS" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv $baseDir/output_tables/${dataset}/
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv $baseDir/output_tables/${dataset}/
+  python $baseDir/bin/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
                                                -c ${params.SBS_context} -S ${params.signature_tables} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \
-                                               -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
+                                               -i $baseDir/output_tables -o "./" -n ${params.number_of_bootstrapped_samples}
   """
 }
 
 process plot_bootstrap_attributions {
-  publishDir "${params.plots_output_path}", mode: 'move'
+  publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
   set dataset, mutation_type from attribution_for_bootstrap_plots
   file bootstrap_attributions from attributions_per_sample.collect()
+  file signatures from signatures_for_plot_bootstrap
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
@@ -318,15 +386,15 @@ process plot_bootstrap_attributions {
 
   script:
   """
-  python $baseDir/bin/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${params.signature_prefix} ${abs_flag} \
+  python $baseDir/bin/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
                                                      -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
-                                                     -i ${params.NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
+                                                     -i $baseDir/output_tables -o "./" -n ${params.number_of_bootstrapped_samples}
   """
 }
 
 
 process plot_metrics {
-  publishDir "${params.plots_output_path}", mode: 'move'
+  publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
   set dataset, mutation_type from attribution_for_metrics
@@ -342,6 +410,46 @@ process plot_metrics {
 
   script:
   """
-  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -i ${params.NNLS_output_path} -o "./"
+  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -i $baseDir/output_tables -o "./"
   """
+}
+
+if (params.perform_bootstrapping) {
+  process move_bootstrap_outputs {
+    publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
+
+    input:
+    file output from final_outputs_post_bootstrap.collect()
+    each dataset from params.dataset
+    path output_path from "$baseDir/output_tables"
+
+    output:
+    file("MSA_output_${dataset}.tar.gz")
+
+    shell:
+    """
+    cp -r ${output_path}/${dataset} .
+    tar cvfh MSA_output_${dataset}.tar.gz ${dataset}
+    rm -rf ${dataset}
+    """
+  }
+} else {
+  process move_outputs {
+    publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
+
+    input:
+    file output from final_outputs_no_bootstrap.collect()
+    each dataset from params.dataset
+    path output_path from "$baseDir/output_tables"
+
+    output:
+    file("MSA_output_${dataset}.tar.gz")
+
+    shell:
+    """
+    cp -r ${output_path}/${dataset} .
+    tar cvfh MSA_output_${dataset}.tar.gz ${dataset}
+    rm -rf ${dataset}
+    """
+  }
 }
