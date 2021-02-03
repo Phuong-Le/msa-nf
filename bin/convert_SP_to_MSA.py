@@ -95,7 +95,7 @@ if __name__ == '__main__':
         if options.COSMIC:
             signatures_type = 'COSMIC'
         else:
-            signatures_type = 'De_Novo'
+            signatures_type = 'De-Novo'
         print('Converting %s signature tables from SigProfilerExtractor output %s' % (signatures_type, input_path))
 
     for mutation_type in mutation_types:
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     if options.reindex_signatures:
         # reindex signatures
         for mutation_type in mutation_types:
-            input_signatures = glob.glob(input_path + '/%s*/Suggested_Solution/%s*/Signatures/*Signatures.txt' % (mutation_type, signatures_type))
+            input_signatures = glob.glob(input_path + '/%s*/Suggested_Solution/*%s*/Signatures/*Signatures.txt' % (mutation_type, signatures_type))
             if not input_signatures:
                 raise ValueError("Can't find any signature tables of type %s, mutation type %s in input path %s" % (mutation_type, signatures_type, input_path) )
             for signature_table in input_signatures:
