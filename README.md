@@ -150,12 +150,7 @@ Bootstrap option *-B* allows to run this script for a perturbed mutation table, 
 nextflow run run_NNLS_optimisation.nf
 ```
 
-The output will be produced in **output_opt_check** folder, upon which one may run the plotting script producing efficiency heatmaps, e.g.:
-
-```
-python bin/make_efficiency_heatmaps.py -m NNLS -c 96
-python bin/make_efficiency_heatmaps.py -m NNLS -c 192
-```
+The output will be produced in **output_opt_check** folder.
 
 ### Fixed attribution results comparison
 
