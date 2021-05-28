@@ -144,10 +144,10 @@ Bootstrap option *-B* allows to run this script for a perturbed mutation table, 
 
 ### Optimisation thresholds parameter space scan
 
-[Nextflow](https://www.nextflow.io/) script have been implemented to run the parameter space scan of the optimisation thresholds for NNLS routine. This can be run locally or on your favourite cluster.
+A dedicated [Nextflow](https://www.nextflow.io/) [script](https://gitlab.com/s.senkin/MSA/run_NNLS_optimisation.nf) has been implemented to run the parameter space scan of the optimisation thresholds for NNLS routine. The default configuration uses an example simulated *SIM_ESCC* dataset, based on low-penalty attribution of ESCC-like simulated samples. This optimisation can be run locally or on your favourite cluster:
 
 ```
-nextflow run run_NNLS_optimisation.nf
+nextflow run https://gitlab.com/s.senkin/MSA/run_NNLS_optimisation.nf -profile docker
 ```
 
 The output will be produced in **output_opt_check** folder.

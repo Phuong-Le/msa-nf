@@ -26,7 +26,7 @@ signatures_to_generate = {
     'ID2':[2000,1000]
 }
 
-def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total', savepath = './burden.pdf'):
+def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total', x_label='Mutation count', y_label='Normalised number of samples', savepath = './burden.pdf'):
     """
     Plot a histogram of the input mutational burden, plot the Gaussian on top if
     the mean (mu) and standard deviation (sigma) are provided, otherwise fit a
@@ -68,10 +68,10 @@ def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total'
 
     ax.plot(bins, y, 'r--', linewidth=2)
     # remove indentation from latex-based text
-    ax.text(0.65, 0.9, text, fontsize=9, transform=ax.axes.transAxes)
+    ax.text(0.65, 0.85, text, fontsize=9, transform=ax.axes.transAxes)
 
-    ax.set_ylabel("Probability", fontsize=12)
-    ax.set_xlabel("Mutation count", fontsize=12)
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel(y_label, fontsize=12)
     ax.set_title(title, fontsize=14, pad=10)
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
@@ -97,8 +97,8 @@ if __name__ == '__main__':
                       help="Add noise of type specified by noise_type parameter")
     parser.add_option("--noise_type", dest="noise_type", default='poisson',
                       help="Choose the type of noise: Poisson, Gaussian or negative_binomial (Poisson variation by default)")
-    parser.add_option("-Z", "--noise_sigma", dest="noise_sigma", default=2, type='float',
-                      help="Set standard deviation of Gaussian noise if used (2 by default)")
+    parser.add_option("-Z", "--noise_sigma", dest="noise_sigma", default=5, type='float',
+                      help="Set standard deviation (in percentage of sample mutation burden) of Gaussian noise if used (5 percent by default)")
     parser.add_option("-r", "--random", dest="random_signatures", action="store_true",
                       help="Use randomly generated signatures instead of PCAWG reference ones")
     parser.add_option("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type='int',
@@ -222,11 +222,17 @@ if __name__ == '__main__':
 
         if options.add_noise:
             if options.noise_type=="gaussian" or options.noise_type=="Gaussian" or options.noise_type=="normal" or options.noise_type=="Normal":
-                noise_term = np.random.normal(0, options.noise_sigma, len(generated_mutations[i]))
-                generated_mutations[i] += noise_term
+                # # absolute stdev implementation
+                # noise_term = np.random.normal(0, options.noise_sigma, len(generated_mutations[i]))
+                # generated_mutations[i] += noise_term
+                # # relative stdev implementation
+                noise_stdev = generated_mutations[i]*options.noise_sigma/100
+                noisy_data = np.random.normal(generated_mutations[i], noise_stdev)
+                generated_mutations[i] = noisy_data
             elif options.noise_type=="poisson" or options.noise_type=="Poisson":
                 for category_index in range(len(generated_mutations[i])):
-                    generated_mutations[i][category_index] = np.random.poisson(generated_mutations[i][category_index])
+                    generated_mutations.iloc[category_index, i] = np.random.poisson(generated_mutations.iloc[category_index, i])
+                    #generated_mutations[i][category_index] = np.random.poisson(generated_mutations[i][category_index])
             elif options.noise_type=="negative_binomial" or options.noise_type=="Negative_binomial":
                 noise_term = np.random.negative_binomial(2, 0.5, len(reference_signatures[signature].values))
                 generated_mutations[i] += noise_term
@@ -239,6 +245,11 @@ if __name__ == '__main__':
 
     # plot total mutational burden distribution:
     plot_mutational_burden(generated_mutational_burdens, savepath='%s/%s_plots/generated_burden_%s_total.pdf' % (output_path, dataset_name, mutation_type) )
+
+    # plot relative signature weights:
+    for signature in generated_weights.columns:
+        plot_mutational_burden(generated_weights[signature].to_numpy(), title=signature, x_label = 'Relative weight',
+            savepath='%s/%s_plots/generated_weight_%s.pdf' % (output_path, dataset_name, signature))
 
     # save dataframes
     generated_mutations.to_csv(output_filename)

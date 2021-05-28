@@ -140,7 +140,7 @@ def make_condensed_spectrum_plot(data, mutation_type='SBS', title='', y_label=''
         ax.legend(handles[::-1], labels[::-1], frameon=False)
         plt.xlabel(y_label, fontsize=12)
     else:
-        mutations.plot.bar(ax = ax, yerr = errors if show_errors else None, edgecolor = "none", color=[colours], legend=False)
+        mutations.plot.bar(ax = ax, yerr = errors if show_errors else None, edgecolor = "none", color = colours, legend=False)
         plt.ylabel(y_label, fontsize=12)
 
     # if strand_bias_present:
