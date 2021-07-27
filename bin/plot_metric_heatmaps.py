@@ -278,8 +278,6 @@ if __name__ == '__main__':
 
     # truth_table = pd.read_csv(truth_table_filename, index_col=0)
     all_signatures = list(signatures.columns)
-    if 'DBS78D' in all_signatures:
-        all_signatures.remove('DBS78D')
     print('Signatures analysed:', all_signatures)
 
     sensitivity_tables_per_sig_from_CI = {}

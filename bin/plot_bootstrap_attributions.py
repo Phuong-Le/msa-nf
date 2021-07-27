@@ -203,11 +203,16 @@ if __name__ == '__main__':
     # convert columns and index to str
     central_attribution_table.columns = central_attribution_table.columns.astype(str)
     central_attribution_table.index = central_attribution_table.index.astype(str)
+
+    signatures_to_consider = list(central_attribution_table_abs.columns)
+
     if 'SIM' in dataset_name:
         truth_attribution_table.columns = truth_attribution_table.columns.astype(str)
         truth_attribution_table.index = truth_attribution_table.index.astype(str)
-
-    signatures_to_consider = list(central_attribution_table_abs.columns)
+        for signature in signatures_to_consider:
+            # if signature is not modelled, add it as zeros in truth table:
+            if signature not in truth_attribution_table.columns:
+                truth_attribution_table[signature] = 0
 
     main_title = dataset_name.replace('_','/') + ' data, ' + mutation_type + ' mutation type'
 

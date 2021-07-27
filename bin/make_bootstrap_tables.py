@@ -243,6 +243,9 @@ if __name__ == '__main__':
     if 'SIM' in dataset_name:
         for sample in samples:
             for signature in signatures_to_consider:
+                # if signature is not modelled, add it as zeros in truth table:
+                if signature not in truth_attribution_table.columns:
+                    truth_attribution_table[signature] = 0
                 array = attributions_per_sample_dict[sample][signature]
                 # confidence_interval = calculate_confidence_interval(array)
                 # confidence_interval_string = confidence_intervals.loc[sample, signature]
