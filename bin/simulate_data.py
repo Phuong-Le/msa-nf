@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 from common_methods import make_folder_if_not_exists
 
+# signatures to generate if not bootstrapping and input signature activities table (-B option)
 signatures_to_generate = {
     # Dictionary with signature burdens to be generated.
     # Each signature is assigned with a list of type [mu, sigma], where mu is the mean
@@ -18,12 +19,23 @@ signatures_to_generate = {
     'SBS5':[0, 50],
     'SBS13':[150, 130],
     'SBS18':[100, 100],
-    'SBS21':[0, 50],
+    'SBS22':[0, 50],
     'SBS40':[200, 300],
     'DBS1':[140,270],
     'DBS2':[2000,1000],
     'ID1':[140,270],
     'ID2':[2000,1000]
+}
+
+# additional signatures to inject if -I option is specified (useful with -B option)
+signatures_to_inject = {
+    # Dictionary with signature burdens to be injected in addition to modelled/bootstrapped signatures.
+    # Each signature is assigned with a list of type [mu, sigma, p], where mu is the mean
+    # and sigma is the standard deviation of the normal distribution used for simulating
+    # the mutational burden attributed to the signature, and p is the probability of injection to a given sample.
+    # Signature burden means and standard deviations are specified as ratios of mutation burdens of the samples to be injected in.
+    # Signature names (strings) have to be present in the input signature tables.
+    'SBS4':[0.05, 0.005, 0.1]
 }
 
 def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total', x_label='Mutation count', y_label='Normalised number of samples', savepath = './burden.pdf'):
@@ -103,10 +115,12 @@ if __name__ == '__main__':
                       help="Use randomly generated signatures instead of PCAWG reference ones")
     parser.add_option("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type='int',
                       help="Number of random signatures to consider")
-    parser.add_option("-B", "--bootstrap_input_mutation_table", dest="bootstrap_input_mutation_table", action="store_true",
-                      help="Bootstrap (reshuffle with replacement) the input mutation table instead if using signatures")
-    parser.add_option("-i", "--input_table", dest="input_table", default='',
-                      help="set path to input mutation table to bootstrap")
+    parser.add_option("-B", "--bootstrap_input_signature_activities_table", dest="bootstrap_input_signature_activities_table", action="store_true",
+                      help="Bootstrap (reshuffle with replacement) the input signature activities table instead of using signatures_to_generate dictionary")
+    parser.add_option("-i", "--input_table", dest="input_table", default='/Users/cation/work/ESCC_Manuscript/SBS288results/SBS288/Suggested_Solution/De_Novo_Solution/De_Novo_Solution_Activities_SBS288.txt',
+                      help="set path to input signature activities table to bootstrap")
+    parser.add_option("-I", "--inject_signatures", dest="inject_signatures", action="store_true",
+                      help="inject additional signatures as specified in signatures_to_inject dictionary in the script")
     (options, args) = parser.parse_args()
 
     mutation_type = options.mutation_type
@@ -157,12 +171,13 @@ if __name__ == '__main__':
             raise ValueError("Probabilities for signature %s do not add up to 1: %.3f" % (signature, reference_signatures.sum()[signature]))
 
     generated_signature_burdens = {}
-    if options.bootstrap_input_mutation_table:
+    if options.bootstrap_input_signature_activities_table:
         if not options.input_table:
-            parser.error("Please provide the input mutation table for bootstrap with -i option.")
+            parser.error("Please provide the input signature activities table for bootstrap with -i option.")
         input_table = pd.read_csv(options.input_table, index_col=0, sep=None)
         bootstrapped_table = input_table.sample(n=number_of_samples, replace=True)
         for signature in input_table.columns:
+            print('Generating signature burden for', signature)
             generated_signature_burdens[signature] = bootstrapped_table[signature].to_numpy()
             plot_mutational_burden(generated_signature_burdens[signature], title=signature,
             savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
@@ -203,23 +218,51 @@ if __name__ == '__main__':
     generated_weights = pd.DataFrame(0, index=samples_range, columns=reference_signatures.columns)
     generated_mutations = pd.DataFrame(0, index=reference_signatures.index, columns=samples_range)
 
-    # loop to fill mutation tables:
+    # obtain generated mutational burdens
     generated_mutational_burdens = []
     for i in samples_range:
         mutational_burden = sum(signature_burden[i] for signature_burden in list(generated_signature_burdens.values()))
         generated_mutational_burdens.append(mutational_burden)
+
+    # optionally, inject additional signatures:
+    if options.inject_signatures:
+        for signature in signatures_to_inject.keys():
+            if mutation_type not in signature:
+                continue
+            if not options.bootstrap_input_signature_activities_table and not random_signatures and signature in signatures_to_generate:
+                raise ValueError("Signature %s can not be generated and injected simultaneously" % (signature))
+            mu = signatures_to_inject[signature][0]*mutational_burden
+            sigma = signatures_to_inject[signature][1]*mutational_burden
+            p = signatures_to_inject[signature][2]
+            # draw burdens from normal distribution, multiplied by binomial distribution for p probability of injection
+            generated_burdens = np.random.normal(mu, sigma, number_of_samples) * np.random.binomial(1, p, number_of_samples)
+            # draw burdens from exponential instead:
+            # generated_burdens = np.random.exponential(500, number_of_samples) * np.random.binomial(1, p, number_of_samples)
+            # replace negative values of the Gaussian with zeros
+            generated_burdens[generated_burdens<0] = 0
+            # plot the generated burden
+            plot_mutational_burden(generated_burdens, mu, sigma, signature,
+                                savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
+            if signature in generated_signature_burdens.keys():
+                generated_signature_burdens[signature] += generated_burdens
+            else:
+                generated_signature_burdens[signature] = generated_burdens
+
+    # loop to fill mutation tables:
+    for i in samples_range:
         weights = {}
         for signature in generated_signature_burdens.keys():
             if mutational_burden!=0:
-                weights[signature] = generated_signature_burdens[signature][i]/mutational_burden
+                weights[signature] = generated_signature_burdens[signature][i]/generated_mutational_burdens[i]
             else:
                 weights[signature] = 0
             generated_weights.loc[i,signature] = weights[signature]
             generated_mutations[i] += reference_signatures[signature]*weights[signature]
 
         # multiply by mutational burden
-        generated_mutations[i] = mutational_burden*generated_mutations[i]
+        generated_mutations[i] = generated_mutational_burdens[i]*generated_mutations[i]
 
+        # optionally, add noise:
         if options.add_noise:
             if options.noise_type=="gaussian" or options.noise_type=="Gaussian" or options.noise_type=="normal" or options.noise_type=="Normal":
                 # # absolute stdev implementation
@@ -248,6 +291,7 @@ if __name__ == '__main__':
 
     # plot relative signature weights:
     for signature in generated_weights.columns:
+        print('Plotting weights for signature', signature)
         plot_mutational_burden(generated_weights[signature].to_numpy(), title=signature, x_label = 'Relative weight',
             savepath='%s/%s_plots/generated_weight_%s.pdf' % (output_path, dataset_name, signature))
 
