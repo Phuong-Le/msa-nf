@@ -185,7 +185,7 @@ def make_spectrum_plot(data, mutation_type='SBS', title='', y_label='', show_err
         mutation_dict = normalise_mutations(mutation_dict)
 
     f, axes = plt.subplots(1, len(categories), sharey=True, figsize=(20, 3))
-    f.suptitle(title, fontsize=14, y=0.99)
+    f.suptitle(title, fontsize=14, y=0.88)
 
     for category, axis, colour in zip(categories, axes, colours):
         if strand_bias:
@@ -208,9 +208,10 @@ def make_spectrum_plot(data, mutation_type='SBS', title='', y_label='', show_err
             label_text_colour = 'black'
 
         axis.set_title(category_to_plot, fontsize=10, color = label_text_colour)
+        axis.xaxis.label.set_visible(False)
 
         # Create a Rectangle patch
-        rect = patches.Rectangle((0,1),1,0.13,linewidth=1,clip_on=False,edgecolor=colour,facecolor=colour,transform=axis.transAxes)
+        rect = patches.Rectangle((0,1),1,0.2,linewidth=1,clip_on=False,edgecolor=colour,facecolor=colour,transform=axis.transAxes)
         # Add the patch to the Axes
         axis.add_patch(rect)
 
@@ -233,7 +234,7 @@ def make_spectrum_plot(data, mutation_type='SBS', title='', y_label='', show_err
 
         f.set_tight_layout({'rect':[0.01, 0.03, 0.9, 0.95]})
     else:
-        f.set_tight_layout({'rect':[0, 0.03, 1, 0.95]})
+        f.set_tight_layout(True)
 
     # handling the ticks
     plt.minorticks_off()
