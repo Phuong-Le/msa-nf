@@ -13,6 +13,7 @@ from common_methods import make_folder_if_not_exists, read_data_from_JSON
 matplotlib.use("agg")
 
 def make_lineplot(x_values, y_values, xlabel, ylabel, title='', savepath="./lineplot.pdf"):
+    global confidence_level
     make_folder_if_not_exists(savepath.rsplit('/', 1)[0])
 
     fig = plt.figure(figsize=(6, 4))
@@ -27,13 +28,14 @@ def make_lineplot(x_values, y_values, xlabel, ylabel, title='', savepath="./line
     # Add a grid to the plot
     ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
     ax.xaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
-    # Add a red line at 0.95
-    plt.axhline(y=0.95, color='r', linestyle='-')
+    # Add a red line at confidence level
+    plt.axhline(y=confidence_level, color='r', linestyle='-')
     plt.tight_layout()
     plt.savefig(savepath, transparent=True)
     plt.close()
 
 def make_boxplot(input_table, title, xlabel, ylabel, show_mean=False, ylim_zero_to_one=True, add_jitter = False, savepath="./boxplot.pdf"):
+    global confidence_level
     make_folder_if_not_exists(savepath.rsplit('/', 1)[0])
 
     table = copy.deepcopy(input_table)
@@ -48,7 +50,7 @@ def make_boxplot(input_table, title, xlabel, ylabel, show_mean=False, ylim_zero_
     if ylim_zero_to_one:
         ax.set_ylim(0, 1.05)
         plt.axhline(y=1, color='r', linestyle='--')
-        plt.axhline(y=0.95, color='g', linestyle='--')
+        plt.axhline(y=confidence_level, color='g', linestyle='--')
     table.boxplot(column=columns, ax=ax, grid=False, return_type='axes', sym='.',
                   meanline=show_mean, showmeans=show_mean, boxprops=dict(linewidth=3))
     if add_jitter:
@@ -125,6 +127,8 @@ if __name__ == '__main__':
                         help="set path to NNLS output data")
     parser.add_argument("-d", "--dataset", dest="dataset_name", default='ESCC',
                         help="set the dataset name (e.g. ESCC, TCE)")
+    parser.add_argument("-l", "--confidence_level", dest="confidence_level", default=0.95, type=float,
+                        help="specify the confidence level for CL line plotting (default: 0.95)")
     parser.add_argument("-o", "--output_folder", dest="output_folder", default='plots/',
                         help="set path to save plots")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
@@ -136,6 +140,7 @@ if __name__ == '__main__':
 
     dataset_name = args.dataset_name
     mutation_type = args.mutation_type
+    confidence_level = args.confidence_level
     input_attributions_folder = args.input_attributions_folder + '/' + dataset_name + '/'
     output_folder = args.output_folder + '/' + dataset_name + '/' + mutation_type + '/bootstrap_plots/'
     make_folder_if_not_exists(output_folder)

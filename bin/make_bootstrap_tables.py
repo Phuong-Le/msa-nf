@@ -10,14 +10,15 @@ from datetime import datetime
 from common_methods import make_folder_if_not_exists, write_data_to_JSON, calculate_confidence_interval, calculate_stat_scores
 
 def calculate_sensitivity_thresholds(signatures_CPs_dict, signatures_to_consider, signature_attribution_thresholds):
+    global confidence_level
     sensitivity_thresholds = pd.DataFrame(columns=signatures_to_consider, dtype=float)
     for signature in signatures_to_consider:
         lowest_threshold_scanned = signature_attribution_thresholds[0]
         highest_threshold_scanned = signature_attribution_thresholds[-1]
-        if signatures_CPs_dict[lowest_threshold_scanned].loc[0, signature] >= 0.95:
+        if signatures_CPs_dict[lowest_threshold_scanned].loc[0, signature] >= confidence_level:
             sensitivity_thresholds.loc[0, signature] = lowest_threshold_scanned
             continue
-        elif signatures_CPs_dict[highest_threshold_scanned].loc[0, signature] < 0.95:
+        elif signatures_CPs_dict[highest_threshold_scanned].loc[0, signature] < confidence_level:
             sensitivity_thresholds.loc[0, signature] = np.nan
             continue
         else:
@@ -28,10 +29,10 @@ def calculate_sensitivity_thresholds(signatures_CPs_dict, signatures_to_consider
                     next_threshold = threshold
                 lower_CP = signatures_CPs_dict[threshold].loc[0, signature]
                 higher_CP = signatures_CPs_dict[next_threshold].loc[0, signature]
-                if lower_CP < 0.95 and higher_CP >= 0.95:
-                    sensitivity_thresholds.loc[0, signature] = threshold + (0.95-lower_CP)*(next_threshold-threshold)/(higher_CP-lower_CP)
+                if lower_CP < confidence_level and higher_CP >= confidence_level:
+                    sensitivity_thresholds.loc[0, signature] = threshold + (confidence_level-lower_CP)*(next_threshold-threshold)/(higher_CP-lower_CP)
                     continue
-                elif lower_CP==0.95 and higher_CP==0.95:
+                elif lower_CP==confidence_level and higher_CP==confidence_level:
                     sensitivity_thresholds.loc[0, signature] = threshold
                     continue
     return sensitivity_thresholds
@@ -52,7 +53,9 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
                         help="set mutation type (SBS, DBS, ID)")
     parser.add_argument("-c", "--context", dest="context", default=192, type=int,
-                        help="set SBS context (96, 192)")
+                        help="set SBS context (96, 192, 288)")
+    parser.add_argument("-l", "--confidence_level", dest="confidence_level", default=0.95, type=float,
+                        help="specify the confidence level for CI calculation (default: 0.95)")
     parser.add_argument("-a", "--use_absolute_numbers", dest="abs_numbers", action="store_true",
                         help="consider absolute numbers of mutations (relative by default)")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
@@ -71,6 +74,7 @@ if __name__ == '__main__':
     dataset_name = args.dataset_name
     mutation_type = args.mutation_type
     context = args.context
+    confidence_level = args.confidence_level
     number_of_b_samples = args.number_of_b_samples
     signature_tables_path = args.signature_tables_path
     signatures_prefix = args.signatures_prefix
@@ -228,7 +232,7 @@ if __name__ == '__main__':
     pruned_attribution_table = pd.DataFrame(index=samples, columns=signatures_to_consider, dtype=int)
     for sample in samples:
         for signature in signatures_to_consider:
-            confidence_interval = calculate_confidence_interval(attributions_per_sample_dict[sample][signature])
+            confidence_interval = calculate_confidence_interval(attributions_per_sample_dict[sample][signature], confidence = confidence_level*100)
             central_value = central_attribution_table.loc[sample, signature]
             confidence_intervals.loc[sample, signature] = [central_value, confidence_interval]
             if confidence_interval[0]==0:
@@ -247,12 +251,6 @@ if __name__ == '__main__':
                 if signature not in truth_attribution_table.columns:
                     truth_attribution_table[signature] = 0
                 array = attributions_per_sample_dict[sample][signature]
-                # confidence_interval = calculate_confidence_interval(array)
-                # confidence_interval_string = confidence_intervals.loc[sample, signature]
-                # confidence_interval_string = confidence_interval_string.replace('array(','')
-                # confidence_interval_string = confidence_interval_string.replace(')','')
-                # confidence_interval_string = confidence_interval_string.translate({ord(i):None for i in '[,]'})
-                # central, lower, upper = [float(x) for x in confidence_interval_string.split()]
                 central = confidence_intervals.loc[sample, signature][0]
                 lower, upper = confidence_intervals.loc[sample, signature][1]
                 lower_CI_attributions.loc[sample, signature] = lower
@@ -285,13 +283,6 @@ if __name__ == '__main__':
             signatures_CPs_dict[threshold] = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
             for sample in samples:
                 for signature in signatures_to_consider:
-                    # array = attributions_per_sample_dict[sample][signature]
-                    # confidence_interval = calculate_confidence_interval(array)
-                    # confidence_interval_string = confidence_intervals.loc[sample, signature]
-                    # confidence_interval_string = confidence_interval_string.replace('array(','')
-                    # confidence_interval_string = confidence_interval_string.replace(')','')
-                    # confidence_interval_string = confidence_interval_string.translate({ord(i):None for i in '[,]'})
-                    # central, lower, upper = [float(x) for x in confidence_interval_string.split()]
                     central = confidence_intervals.loc[sample, signature][0]
                     lower, upper = confidence_intervals.loc[sample, signature][1]
                     # increase upper bound of CI if less than threshold
@@ -307,7 +298,7 @@ if __name__ == '__main__':
             # normalise to calculate CPs
             signatures_CPs_dict[threshold] = signatures_CPs_dict[threshold].sum(axis=0).to_frame().T.div(len(samples))
 
-        # extract attribution  thresholds at which CP reaches 95% for each signature
+        # extract attribution  thresholds at which CP reaches specified confidence level for each signature
         sensitivity_thresholds = calculate_sensitivity_thresholds(signatures_CPs_dict, signatures_to_consider, signature_attribution_thresholds)
         print('Signature sensitivity thresholds calculated.')
         print('Elapsed time:', datetime.now() - start_time)

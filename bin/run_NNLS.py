@@ -493,11 +493,11 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--output_path", dest="output_path", default='output_tables/',
                         help="set path to save output tables")
     parser.add_argument("-x", "--optimise_signatures", dest="optimise_signatures", action="store_true",
-                        help="perform signature optimisation (remove weak signature, add strong ones)")
+                        help="perform signature optimisation (remove weak signatures, add strong ones)")
     parser.add_argument("-W", "--weak_threshold", dest="weak_threshold", default=0.01, type=float,
                         help="Similarity decrease threshold to exclude weakest signatures in optimisation (default: 0.01)")
     parser.add_argument("-S", "--strong_threshold", dest="strong_threshold", default=0.01, type=float,
-                        help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.05)")
+                        help="Similarity increase threshold to include strongest signatures in optimisation (default: 0.01)")
     parser.add_argument("-N", "--normalise_mutations", dest="normalise_mutations", action="store_true",
                         help="Normalise mutation counts to the input mutational burden in NNLS output")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",

@@ -53,6 +53,7 @@ params.show_nontranscribed_region = false // only wortks with higher contexts (2
 params.perform_bootstrapping = true
 params.bootstrap_method = "binomial"
 params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
+params.confidence_level = 0.95 // specify the confidence level for CI calculation (default: 0.95)
 params.use_absolute_attributions = false // use absolute mutation counts in bootstrap analysis (relative by default)
 
 // if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
@@ -345,7 +346,7 @@ process make_bootstrap_tables {
   file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
   file("./${dataset}/attributions_per_signature_${mutation_type}_bootstrap_output_${suffix}.json")
   file("./${dataset}/stat_metrics_${mutation_type}_bootstrap_output_${suffix}.json")
-  file '*/*.csv'
+  file("./${dataset}/pruned_attribution_${mutation_type}_abs_mutations.csv")
   file '*/truth_studies/*.csv' optional true
   file '*/truth_studies/*.json' optional true
 
@@ -362,7 +363,7 @@ process make_bootstrap_tables {
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv $baseDir/output_tables/${dataset}/
   python $baseDir/bin/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
-                                               -c ${params.SBS_context} -S ${params.signature_tables} \
+                                               -c ${params.SBS_context} -S ${params.signature_tables} -l ${params.confidence_level} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \
                                                -i $baseDir/output_tables -o "./" -n ${params.number_of_bootstrapped_samples}
   """
@@ -410,7 +411,7 @@ process plot_metrics {
 
   script:
   """
-  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -i $baseDir/output_tables -o "./"
+  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -l ${params.confidence_level} -i $baseDir/output_tables -o "./"
   """
 }
 
