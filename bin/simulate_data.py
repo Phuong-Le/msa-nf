@@ -1,4 +1,4 @@
-from optparse import OptionParser
+import argparse
 import os
 import random
 import pandas as pd
@@ -90,47 +90,50 @@ def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total'
     plt.close()
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-t", "--mutation_type", dest="mutation_type", default='',
-                      help="set mutation type (SBS, DBS, ID)")
-    parser.add_option("-c", "--context", dest="context", default=96, type='int',
-                      help="set SBS context (96, 192)")
-    parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
-                      help="set path to signature tables")
-    parser.add_option("-o", "--output_path", dest="output_path", default='input_mutation_tables/',
-                      help="set path to save output simulatied mutation tables")
-    parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
-                      help="set the dataset name ('SIM' by default)")
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
-                      help="verbosity flag for debugging (lots of output)")
-    parser.add_option("-n", "--number_of_samples", dest="number_of_samples", default=100, type='int',
-                      help="set the number of samples to generate (100 by default)")
-    parser.add_option("-z", "--noise", dest="add_noise", action="store_true",
-                      help="Add noise of type specified by noise_type parameter")
-    parser.add_option("--noise_type", dest="noise_type", default='poisson',
-                      help="Choose the type of noise: Poisson, Gaussian or negative_binomial (Poisson variation by default)")
-    parser.add_option("-Z", "--noise_sigma", dest="noise_sigma", default=5, type='float',
-                      help="Set standard deviation (in percentage of sample mutation burden) of Gaussian noise if used (5 percent by default)")
-    parser.add_option("-r", "--random", dest="random_signatures", action="store_true",
-                      help="Use randomly generated signatures instead of PCAWG reference ones")
-    parser.add_option("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type='int',
-                      help="Number of random signatures to consider")
-    parser.add_option("-B", "--bootstrap_input_signature_activities_table", dest="bootstrap_input_signature_activities_table", action="store_true",
-                      help="Bootstrap (reshuffle with replacement) the input signature activities table instead of using signatures_to_generate dictionary")
-    parser.add_option("-i", "--input_table", dest="input_table", default='/Users/cation/work/ESCC_Manuscript/SBS288results/SBS288/Suggested_Solution/De_Novo_Solution/De_Novo_Solution_Activities_SBS288.txt',
-                      help="set path to input signature activities table to bootstrap")
-    parser.add_option("-I", "--inject_signatures", dest="inject_signatures", action="store_true",
-                      help="inject additional signatures as specified in signatures_to_inject dictionary in the script")
-    (options, args) = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
+                        help="set mutation type (SBS, DBS, ID)")
+    parser.add_argument("-c", "--context", dest="context", default=96, type=int,
+                        help="set SBS context (96, 192)")
+    parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
+                        help="set path to signature tables")
+    parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
+                        help="set prefix in signature filenames (sigProfiler by default)")
+    parser.add_argument("-o", "--output_path", dest="output_path", default='input_mutation_tables/',
+                        help="set path to save output simulatied mutation tables")
+    parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
+                        help="set the dataset name ('SIM' by default)")
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
+                        help="verbosity flag for debugging (lots of output)")
+    parser.add_argument("-n", "--number_of_samples", dest="number_of_samples", default=100, type=int,
+                        help="set the number of samples to generate (100 by default)")
+    parser.add_argument("-z", "--noise", dest="add_noise", action="store_true",
+                        help="Add noise of type specified by noise_type parameter")
+    parser.add_argument("--noise_type", dest="noise_type", default='poisson',
+                        help="Choose the type of noise: Poisson, Gaussian or negative_binomial (Poisson variation by default)")
+    parser.add_argument("-Z", "--noise_sigma", dest="noise_sigma", default=5, type=float,
+                        help="Set standard deviation (in percentage of sample mutation burden) of Gaussian noise if used (5 percent by default)")
+    parser.add_argument("-r", "--random", dest="random_signatures", action="store_true",
+                        help="Use randomly generated signatures instead of PCAWG reference ones")
+    parser.add_argument("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type=int,
+                        help="Number of random signatures to consider")
+    parser.add_argument("-B", "--bootstrap_input_signature_activities_table", dest="bootstrap_input_signature_activities_table", action="store_true",
+                        help="Bootstrap (reshuffle with replacement) the input signature activities table instead of using signatures_to_generate dictionary")
+    parser.add_argument("-i", "--input_table", dest="input_table", default='',
+                        help="set path to input signature activities table to bootstrap")
+    parser.add_argument("-I", "--inject_signatures", dest="inject_signatures", action="store_true",
+                        help="inject additional signatures as specified in signatures_to_inject dictionary in the script")
+    args = parser.parse_args()
 
-    mutation_type = options.mutation_type
-    dataset_name = options.dataset_name
-    context = options.context
-    signature_tables_path = options.signature_tables_path
-    output_path = options.output_path + '/' + dataset_name
-    number_of_samples = options.number_of_samples
-    random_signatures = options.random_signatures
-    number_of_random_sigs = options.number_of_random_sigs
+    mutation_type = args.mutation_type
+    dataset_name = args.dataset_name
+    context = args.context
+    signature_tables_path = args.signature_tables_path
+    signatures_prefix = args.signatures_prefix
+    output_path = args.output_path + '/' + dataset_name
+    number_of_samples = args.number_of_samples
+    random_signatures = args.random_signatures
+    number_of_random_sigs = args.number_of_random_sigs
 
     make_folder_if_not_exists(output_path)
 
@@ -138,12 +141,7 @@ if __name__ == '__main__':
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (or '-t DBS', '-t ID').")
     elif mutation_type not in ['SBS','DBS','ID']:
         raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
-
-    if random_signatures:
-        signatures_prefix = 'sigRandom'
-    else:
-        signatures_prefix = 'sigProfiler'
-
+    
     if mutation_type=='SBS':
         output_filename = '%s/WGS_%s.%i.csv' % (output_path, dataset_name, context)
         if context==96:
@@ -171,10 +169,10 @@ if __name__ == '__main__':
             raise ValueError("Probabilities for signature %s do not add up to 1: %.3f" % (signature, reference_signatures.sum()[signature]))
 
     generated_signature_burdens = {}
-    if options.bootstrap_input_signature_activities_table:
-        if not options.input_table:
+    if args.bootstrap_input_signature_activities_table:
+        if not args.input_table:
             parser.error("Please provide the input signature activities table for bootstrap with -i option.")
-        input_table = pd.read_csv(options.input_table, index_col=0, sep=None)
+        input_table = pd.read_csv(args.input_table, index_col=0, sep=None)
         bootstrapped_table = input_table.sample(n=number_of_samples, replace=True)
         for signature in input_table.columns:
             print('Generating signature burden for', signature)
@@ -225,11 +223,11 @@ if __name__ == '__main__':
         generated_mutational_burdens.append(mutational_burden)
 
     # optionally, inject additional signatures:
-    if options.inject_signatures:
+    if args.inject_signatures:
         for signature in signatures_to_inject.keys():
             if mutation_type not in signature:
                 continue
-            if not options.bootstrap_input_signature_activities_table and not random_signatures and signature in signatures_to_generate:
+            if not args.bootstrap_input_signature_activities_table and not random_signatures and signature in signatures_to_generate:
                 raise ValueError("Signature %s can not be generated and injected simultaneously" % (signature))
             mu = signatures_to_inject[signature][0]*mutational_burden
             sigma = signatures_to_inject[signature][1]*mutational_burden
@@ -263,20 +261,20 @@ if __name__ == '__main__':
         generated_mutations[i] = generated_mutational_burdens[i]*generated_mutations[i]
 
         # optionally, add noise:
-        if options.add_noise:
-            if options.noise_type=="gaussian" or options.noise_type=="Gaussian" or options.noise_type=="normal" or options.noise_type=="Normal":
+        if args.add_noise:
+            if args.noise_type=="gaussian" or args.noise_type=="Gaussian" or args.noise_type=="normal" or args.noise_type=="Normal":
                 # # absolute stdev implementation
-                # noise_term = np.random.normal(0, options.noise_sigma, len(generated_mutations[i]))
+                # noise_term = np.random.normal(0, args.noise_sigma, len(generated_mutations[i]))
                 # generated_mutations[i] += noise_term
                 # # relative stdev implementation
-                noise_stdev = generated_mutations[i]*options.noise_sigma/100
+                noise_stdev = generated_mutations[i]*args.noise_sigma/100
                 noisy_data = np.random.normal(generated_mutations[i], noise_stdev)
                 generated_mutations[i] = noisy_data
-            elif options.noise_type=="poisson" or options.noise_type=="Poisson":
+            elif args.noise_type=="poisson" or args.noise_type=="Poisson":
                 for category_index in range(len(generated_mutations[i])):
                     generated_mutations.iloc[category_index, i] = np.random.poisson(generated_mutations.iloc[category_index, i])
                     #generated_mutations[i][category_index] = np.random.poisson(generated_mutations[i][category_index])
-            elif options.noise_type=="negative_binomial" or options.noise_type=="Negative_binomial":
+            elif args.noise_type=="negative_binomial" or args.noise_type=="Negative_binomial":
                 noise_term = np.random.negative_binomial(2, 0.5, len(reference_signatures[signature].values))
                 generated_mutations[i] += noise_term
             # make sure there are no negative mutation counts
