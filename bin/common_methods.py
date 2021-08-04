@@ -84,7 +84,7 @@ def read_data_from_JSON(JSON_input_file, pandas = True, json_orient = 'columns')
     if pandas:
         for key, value in data.items():
             # extract dataframe and convert index/columns to str
-            df = pd.read_json(value, orient = json_orient)
+            df = pd.read_json(value, orient = json_orient, convert_axes = False)
             df.columns = df.columns.astype(str)
             df.index = df.index.astype(str)
             data[key] = df
