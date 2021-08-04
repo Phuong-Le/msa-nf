@@ -132,14 +132,13 @@ if (params.SP_extractor_output_path) {
 
     output:
     file '*.csv' into signatures_for_spectra
-    file '*.csv' into signatures_for_NNLS
+    // file '*.csv' into signatures_for_NNLS
     file '*.csv' into signatures_for_unoptimised_NNLS
-    file '*.csv' into signatures_for_optimisation_NNLS
-    file '*.csv' into signatures_for_NNLS_bootstrap
-    file '*.csv' into signatures_for_optimisation_NNLS_bootstrap
-    file '*.csv' into signatures_for_make_bootstrap_tables
-    file '*.csv' into signatures_for_plot_bootstrap
-    file '*.csv' into signatures_for_simulations
+    // file '*.csv' into signatures_for_optimisation_NNLS
+    // file '*.csv' into signatures_for_NNLS_bootstrap
+    // file '*.csv' into signatures_for_optimisation_NNLS_bootstrap
+    // file '*.csv' into signatures_for_make_bootstrap_tables
+    // file '*.csv' into signatures_for_plot_bootstrap
 
     script:
     """
@@ -151,14 +150,14 @@ if (params.SP_extractor_output_path) {
 } else {
   // placeholder channels for execution from existing input matrices
   signatures_for_spectra = Channel.value(1)
-  signatures_for_NNLS = Channel.value(1)
+  // signatures_for_NNLS = Channel.value(1)
   signatures_for_unoptimised_NNLS = Channel.value(1)
-  signatures_for_optimisation_NNLS = Channel.value(1)
-  signatures_for_simulations = Channel.value(1)
-  signatures_for_NNLS_bootstrap = Channel.value(1)
-  signatures_for_optimisation_NNLS_bootstrap = Channel.value(1)
-  signatures_for_make_bootstrap_tables = Channel.value(1)
-  signatures_for_plot_bootstrap = Channel.value(1)
+  // signatures_for_optimisation_NNLS = Channel.value(1)
+  // signatures_for_simulations = Channel.value(1)
+  // signatures_for_NNLS_bootstrap = Channel.value(1)
+  // signatures_for_optimisation_NNLS_bootstrap = Channel.value(1)
+  // signatures_for_make_bootstrap_tables = Channel.value(1)
+  // signatures_for_plot_bootstrap = Channel.value(1)
 }
 
 if (params.SP_matrix_generator_output_path) {
@@ -171,12 +170,11 @@ if (params.SP_matrix_generator_output_path) {
 
     output:
     file '*/*.csv' into converted_SP_to_MSA_for_spectra
-    file '*/*.csv' into converted_SP_to_MSA_for_NNLS
+    // file '*/*.csv' into converted_SP_to_MSA_for_NNLS
     file '*/*.csv' into converted_SP_to_MSA_for_unoptimised_NNLS
-    file '*/*.csv' into converted_SP_to_MSA_for_optimisation_NNLS
-    file '*/*.csv' into converted_SP_to_MSA_for_NNLS_bootstrap
-    file '*/*.csv' into converted_SP_to_MSA_for_optimisation_NNLS_bootstrap
-    file '*/*.csv' into converted_SP_to_MSA_for_simulations
+    // file '*/*.csv' into converted_SP_to_MSA_for_optimisation_NNLS
+    // file '*/*.csv' into converted_SP_to_MSA_for_NNLS_bootstrap
+    // file '*/*.csv' into converted_SP_to_MSA_for_optimisation_NNLS_bootstrap
 
     script:
     """
@@ -187,12 +185,11 @@ if (params.SP_matrix_generator_output_path) {
 } else {
   // placeholder channels for execution from existing input matrices
   converted_SP_to_MSA_for_spectra = Channel.value(1)
-  converted_SP_to_MSA_for_NNLS = Channel.value(1)
+  // converted_SP_to_MSA_for_NNLS = Channel.value(1)
   converted_SP_to_MSA_for_unoptimised_NNLS = Channel.value(1)
-  converted_SP_to_MSA_for_optimisation_NNLS = Channel.value(1)
-  converted_SP_to_MSA_for_NNLS_bootstrap = Channel.value(1)
-  converted_SP_to_MSA_for_optimisation_NNLS_bootstrap = Channel.value(1)
-  converted_SP_to_MSA_for_simulations = Channel.value(1)
+  // converted_SP_to_MSA_for_optimisation_NNLS = Channel.value(1)
+  // converted_SP_to_MSA_for_NNLS_bootstrap = Channel.value(1)
+  // converted_SP_to_MSA_for_optimisation_NNLS_bootstrap = Channel.value(1)
 }
 
 process plot_input_spectra {
@@ -273,8 +270,7 @@ process run_simulations {
 
   input:
   set dataset, mutation_type from unoptimised_attributions
-  file inputs from converted_SP_to_MSA_for_simulations
-  file signatures from signatures_for_simulations
+  // file signatures from signatures_for_simulations
 
   when:
   
@@ -304,8 +300,8 @@ process run_optimisation_NNLS {
   each weak_threshold from params.weak_thresholds
   each strong_threshold from params.strong_thresholds
   set dataset, mutation_type from simulation_outputs
-  file inputs from converted_SP_to_MSA_for_optimisation_NNLS
-  file signatures from signatures_for_optimisation_NNLS
+  // file inputs from converted_SP_to_MSA_for_optimisation_NNLS
+  // file signatures from signatures_for_optimisation_NNLS
 
   output:
   set dataset, mutation_type into optimisation_attribution_for_tables
@@ -336,8 +332,8 @@ process run_optimisation_NNLS_bootstrapping {
   each weak_threshold from params.weak_thresholds
   each strong_threshold from params.strong_thresholds
   set dataset, mutation_type from simulation_outputs_for_bootstrap
-  file inputs from converted_SP_to_MSA_for_optimisation_NNLS_bootstrap
-  file signatures from signatures_for_optimisation_NNLS_bootstrap
+  // file inputs from converted_SP_to_MSA_for_optimisation_NNLS_bootstrap
+  // file signatures from signatures_for_optimisation_NNLS_bootstrap
 
   output:
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_mutations_table.csv")
@@ -370,7 +366,7 @@ process make_optimisation_bootstrap_tables {
   file bootstrap_weights from optimisation_bootstrap_output_tables.collect()
   each weak_threshold from params.weak_thresholds
   each strong_threshold from params.strong_thresholds
-  file signatures from signatures_for_optimisation_NNLS_bootstrap
+  // file signatures from signatures_for_optimisation_NNLS_bootstrap
 
   output:
   file("*/*.csv") into all_optimisation_bootstrap_outputs_for_penalties
@@ -464,8 +460,8 @@ process run_NNLS_normal {
   // file ('*.csv') from all_optimisation_bootstrap_outputs.collect()
   file weak_penalty from optimal_weak_penalty
   file strong_penalty from optimal_strong_penalty
-  file inputs from converted_SP_to_MSA_for_NNLS
-  file signatures from signatures_for_NNLS
+  // file inputs from converted_SP_to_MSA_for_NNLS
+  // file signatures from signatures_for_NNLS
 
   output:
   file("./${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv") into final_outputs_no_bootstrap
@@ -500,8 +496,8 @@ process run_NNLS_bootstrapping {
   set dataset, mutation_type from penalties_for_bootstrap_NNLS_attribution
   file weak_penalty from optimal_weak_penalty_for_bootstrapping
   file strong_penalty from optimal_strong_penalty_for_bootstrapping
-  file inputs from converted_SP_to_MSA_for_NNLS_bootstrap
-  file signatures from signatures_for_NNLS_bootstrap
+  // file inputs from converted_SP_to_MSA_for_NNLS_bootstrap
+  // file signatures from signatures_for_NNLS_bootstrap
   // file residuals from central_NNLS_residuals // uncomment in using residuals bootstrapping
 
   output:
@@ -531,7 +527,7 @@ process make_bootstrap_tables {
   input:
   set dataset, mutation_type from attribution_for_tables
   file bootstrap_weights from bootstrap_output_tables.collect()
-  file signatures from signatures_for_make_bootstrap_tables
+  // file signatures from signatures_for_make_bootstrap_tables
 
   output:
   file("./${dataset}/CIs_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
@@ -568,7 +564,7 @@ process plot_bootstrap_attributions {
   input:
   set dataset, mutation_type from attribution_for_bootstrap_plots
   file bootstrap_attributions from attributions_per_sample.collect()
-  file signatures from signatures_for_plot_bootstrap
+  // file signatures from signatures_for_plot_bootstrap
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
