@@ -177,6 +177,7 @@ if __name__ == '__main__':
         for signature in input_table.columns:
             print('Generating signature burden for', signature)
             generated_signature_burdens[signature] = bootstrapped_table[signature].to_numpy()
+            generated_signature_burdens[signature] = np.nan_to_num(generated_signature_burdens[signature])
             plot_mutational_burden(generated_signature_burdens[signature], title=signature,
             savepath='%s/%s_plots/generated_burden_%s.pdf' % (output_path, dataset_name, signature))
     else:
@@ -221,7 +222,9 @@ if __name__ == '__main__':
     for i in samples_range:
         mutational_burden = sum(signature_burden[i] for signature_burden in list(generated_signature_burdens.values()))
         generated_mutational_burdens.append(mutational_burden)
-
+    generated_mutational_burdens = np.asarray(generated_mutational_burdens)
+    generated_mutational_burdens = np.nan_to_num(generated_mutational_burdens)
+    
     # optionally, inject additional signatures:
     if args.inject_signatures:
         for signature in signatures_to_inject.keys():
@@ -256,10 +259,10 @@ if __name__ == '__main__':
                 weights[signature] = 0
             generated_weights.loc[i,signature] = weights[signature]
             generated_mutations[i] += reference_signatures[signature]*weights[signature]
-
+        
         # multiply by mutational burden
         generated_mutations[i] = generated_mutational_burdens[i]*generated_mutations[i]
-
+        
         # optionally, add noise:
         if args.add_noise:
             if args.noise_type=="gaussian" or args.noise_type=="Gaussian" or args.noise_type=="normal" or args.noise_type=="Normal":
@@ -280,7 +283,10 @@ if __name__ == '__main__':
             # make sure there are no negative mutation counts
             generated_mutations.loc[generated_mutations[i]<0, i] = 0
 
-        # rounding and converting to to integer counts
+        # treating nans with zero (happens when mutation burden is zero in older pandas versions)
+        generated_mutations[i].fillna(0, inplace=True)
+
+        # rounding and converting to integer counts
         generated_mutations[i] = round(generated_mutations[i],0)
         generated_mutations[i] = generated_mutations[i].astype(int)
 
