@@ -187,7 +187,10 @@ if __name__ == '__main__':
     metric_to_prioritise = args.metric_to_prioritise
     metric_threshold = args.metric_threshold
     average = args.average
-    signatures_to_prioritise = [sig for sig in args.signatures_to_prioritise if mutation_type in sig] # only keeping relevant mutation type signatures
+    if args.signatures_to_prioritise:
+        signatures_to_prioritise = [sig for sig in args.signatures_to_prioritise if mutation_type in sig] # only keeping relevant mutation type signatures
+    else:
+        signatures_to_prioritise = []
 
     if not weak_thresholds or not strong_thresholds:
         raise ValueError("Please specify the lists of thresholds.")
