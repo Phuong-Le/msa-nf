@@ -370,7 +370,6 @@ process make_optimisation_bootstrap_tables {
   file bootstrap_weights from optimisation_bootstrap_output_tables.collect()
   each weak_threshold from params.weak_thresholds
   each strong_threshold from params.strong_thresholds
-  file inputs from converted_SP_to_MSA_for_optimisation_NNLS_bootstrap
   file signatures from signatures_for_optimisation_NNLS_bootstrap
 
   output:
