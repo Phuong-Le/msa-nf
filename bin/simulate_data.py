@@ -296,7 +296,7 @@ if __name__ == '__main__':
     # plot relative signature weights:
     for signature in generated_weights.columns:
         print('Plotting weights for signature', signature)
-        plot_mutational_burden(generated_weights[signature].to_numpy(), title=signature, x_label = 'Relative weight',
+        plot_mutational_burden(np.nan_to_num(generated_weights[signature].to_numpy()), title=signature, x_label = 'Relative weight',
             savepath='%s/%s_plots/generated_weight_%s.pdf' % (output_path, dataset_name, signature))
 
     # save dataframes
