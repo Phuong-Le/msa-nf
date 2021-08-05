@@ -289,7 +289,9 @@ if __name__ == '__main__':
         # rounding and converting to integer counts
         generated_mutations[i] = round(generated_mutations[i],0)
         generated_mutations[i] = generated_mutations[i].astype(int)
-
+    
+    # treating nans with zero for generated weights
+    generated_weights.fillna(0, inplace=True)
     # plot total mutational burden distribution:
     plot_mutational_burden(generated_mutational_burdens, savepath='%s/%s_plots/generated_burden_%s_total.pdf' % (output_path, dataset_name, mutation_type) )
 
