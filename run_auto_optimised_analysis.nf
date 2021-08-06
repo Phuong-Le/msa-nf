@@ -39,9 +39,14 @@ params.optimisation_NNLS_output_path = "$baseDir/outputs_optimisation"
 params.optimisation_plots_output_path = params.plots_output_path + "/optimisation_plots"
 params.optimised = true // if set to false, optimisation will run but not be used in final attributions
 params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
-params.weak_thresholds = ['0.0000', '0.0100', '0.0200'] //, '0.0300', '0.0400', '0.0500', '0.0600', '0.0700', '0.0800', '0.0900']
-params.strong_thresholds = ['0.0000'] // only one is sufficient in default removal strategy
-params.number_of_simulated_samples = 100 // at least 1000 is recommended
+params.weak_thresholds = ['0.0000', '0.0100', '0.0200', '0.0300', '0.0400', '0.0500'] // range of L2 similarity decrease thresholds to be scanned, excluding weakest signatures - adjust if needed
+params.strong_thresholds = ['0.0000'] // range of L2 similarity increase thresholds to be scanned, including strongest signatures: only one is sufficient in default removal strategy
+params.bootstrap_method = "binomial" // bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
+params.number_of_bootstrapped_samples_in_optimisation = 100 // at least 100 is recommended
+params.number_of_bootstrapped_samples = 1000 // bootstrap variations in final attribution, at least 1000 is recommended
+params.confidence_level = 0.95 // specify the confidence level for CI calculation (default: 0.95)
+params.use_absolute_attributions = false // use absolute mutation counts in final bootstrap outputs (relative by default)
+params.number_of_simulated_samples = 1000 // at least 1000 is recommended
 params.add_noise = true // add noise in simulations (recommended)
 params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
 params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
@@ -52,20 +57,13 @@ params.no_CI_for_penalties = false // do not use confidence intervals for optima
 params.calculate_penalty_on_average = false // apply criteria based on signatures overall (on average, less conservative), rather than maximising prioritised metric for every signature (more conservative)
 
 params.plot_optimisation_plots = true
-params.plot_signatures = false
-params.plot_input_spectra = false
+params.plot_signatures = true
+params.plot_input_spectra = true
 params.plot_fitted_spectra = false
 params.plot_residuals = false
 params.show_poisson_errors = false
 params.show_strands = false // only works with higher contexts (192, 288)
 params.show_nontranscribed_region = false // only wortks with higher contexts (288)
-
-// bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
-params.perform_bootstrapping = true
-params.bootstrap_method = "binomial"
-params.number_of_bootstrapped_samples = 10 // at least 100 is recommended
-params.confidence_level = 0.95 // specify the confidence level for CI calculation (default: 0.95)
-params.use_absolute_attributions = false // use absolute mutation counts in bootstrap analysis (relative by default)
 
 // if SIM in dataset name (synthetic data), use the following percentage range for measuring signature attirbution sensitivities
 params.signature_attribution_thresholds = 0..20
@@ -83,6 +81,12 @@ noise_flag = (params.add_noise) ? "-z" : ''
 no_CI_for_penalties_flag = (params.no_CI_for_penalties) ? "--no_CI" : ''
 calculate_penalty_on_average_flag = (params.calculate_penalty_on_average) ? "--average" : ''
 prioritised_signatures_flag = (params.signatures_to_prioritise) ? "--signatures_to_prioritise " + params.signatures_to_prioritise.join(' ') : ''
+// override number of samples/variations for test run
+number_of_bootstrapped_samples_in_optimisation = (params.dataset == ['SIM_test']) ? 10 : params.number_of_bootstrapped_samples_in_optimisation
+number_of_bootstrapped_samples = (params.dataset == ['SIM_test']) ? 10 : params.number_of_bootstrapped_samples
+number_of_simulated_samples = (params.dataset == ['SIM_test']) ? 10 : params.number_of_simulated_samples
+weak_thresholds = (params.dataset == ['SIM_test']) ? ['0.0000', '0.0100', '0.0200'] : params.weak_thresholds
+strong_thresholds = (params.dataset == ['SIM_test']) ? ['0.0000'] : params.strong_thresholds
 
 params.help = null
 
@@ -265,7 +269,7 @@ process run_simulations {
 
   script:
   """
-  python $baseDir/bin/simulate_data.py -d SIM_${dataset} -t ${mutation_type} -c ${params.SBS_context} -n ${params.number_of_simulated_samples} -p ${signature_prefix} \
+  python $baseDir/bin/simulate_data.py -d SIM_${dataset} -t ${mutation_type} -c ${params.SBS_context} -n ${number_of_simulated_samples} -p ${signature_prefix} \
                                   -B ${noise_flag} --noise_type ${params.noise_type} -Z ${params.noise_stdev} \
                                   -i $baseDir/output_tables_unoptimised/${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv -s ${params.signature_tables} -o "./"
   """
@@ -275,8 +279,8 @@ process run_optimisation_NNLS {
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
-  each weak_threshold from params.weak_thresholds
-  each strong_threshold from params.strong_thresholds
+  each weak_threshold from weak_thresholds
+  each strong_threshold from strong_thresholds
   set dataset, mutation_type from simulation_outputs
 
   output:
@@ -304,9 +308,9 @@ process run_optimisation_NNLS_bootstrapping {
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
-  each i from 1..params.number_of_bootstrapped_samples
-  each weak_threshold from params.weak_thresholds
-  each strong_threshold from params.strong_thresholds
+  each i from 1..number_of_bootstrapped_samples_in_optimisation
+  each weak_threshold from weak_thresholds
+  each strong_threshold from strong_thresholds
   set dataset, mutation_type from simulation_outputs_for_bootstrap
 
   output:
@@ -314,9 +318,6 @@ process run_optimisation_NNLS_bootstrapping {
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_stat_info.csv")
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_weights_table.csv") into optimisation_bootstrap_output_tables
   set dataset, mutation_type into optimisation_bootstrap_outputs
-
-  when:
-  params.perform_bootstrapping
 
   script:
   """
@@ -338,16 +339,13 @@ process make_optimisation_bootstrap_tables {
   input:
   set dataset, mutation_type from optimisation_attribution_for_tables
   file bootstrap_weights from optimisation_bootstrap_output_tables.collect()
-  each weak_threshold from params.weak_thresholds
-  each strong_threshold from params.strong_thresholds
+  each weak_threshold from weak_thresholds
+  each strong_threshold from strong_thresholds
 
   output:
   file("*/*.csv") into all_optimisation_bootstrap_outputs_for_penalties
   file '*/truth_studies/*.csv'
   file '*/truth_studies/*.json'
-
-  when:
-  params.perform_bootstrapping
 
   script:
   """
@@ -355,7 +353,7 @@ process make_optimisation_bootstrap_tables {
           --suffix ${weak_threshold}_${strong_threshold} -l ${params.confidence_level} \
           -c ${params.SBS_context} -S ${params.signature_tables} \
           -T ${params.signature_attribution_thresholds.join(' ')} \
-          -i ${params.optimisation_NNLS_output_path} -o "./" -n ${params.number_of_bootstrapped_samples}
+          -i ${params.optimisation_NNLS_output_path} -o "./" -n ${number_of_bootstrapped_samples_in_optimisation}
   """
 }
 
@@ -389,8 +387,8 @@ process calculate_optimal_penalties {
                                                      ${prioritised_signatures_flag} \
                                                      -M ${params.metric_to_prioritise} \
                                                      -T ${params.metric_threshold} \
-                                                     -W ${params.weak_thresholds.join(' ')} \
-                                                     -S ${params.strong_thresholds.join(' ')} \
+                                                     -W ${weak_thresholds.join(' ')} \
+                                                     -S ${strong_thresholds.join(' ')} \
                                                      --signature_path ${params.signature_tables} \
                                                      -p ${signature_prefix}
   """
@@ -416,8 +414,8 @@ process plot_optimisation_plots {
                                               -i ${params.optimisation_NNLS_output_path} -o "./" \
                                               -c ${params.SBS_context} \
                                               -l ${params.confidence_level} \
-                                              -W ${params.weak_thresholds.join(' ')} \
-                                              -S ${params.strong_thresholds.join(' ')} \
+                                              -W ${weak_thresholds.join(' ')} \
+                                              -S ${strong_thresholds.join(' ')} \
                                               -T ${params.signature_attribution_thresholds.join(' ')} \
                                               --signature_path ${params.signature_tables} \
                                               -p ${signature_prefix}
@@ -460,7 +458,7 @@ process run_NNLS_bootstrapping {
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
-  each i from 1..params.number_of_bootstrapped_samples
+  each i from 1..number_of_bootstrapped_samples
   set dataset, mutation_type from penalties_for_bootstrap_NNLS_attribution
   file weak_penalty from optimal_weak_penalty_for_bootstrapping
   file strong_penalty from optimal_strong_penalty_for_bootstrapping
@@ -470,9 +468,6 @@ process run_NNLS_bootstrapping {
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_tables
-
-  when:
-  params.perform_bootstrapping
 
   script:
   """
@@ -504,9 +499,6 @@ process make_bootstrap_tables {
   file '*/truth_studies/*.csv' optional true
   file '*/truth_studies/*.json' optional true
 
-  when:
-  params.perform_bootstrapping
-
   script:
   """
   mkdir -p $baseDir/output_tables/${dataset}
@@ -519,7 +511,7 @@ process make_bootstrap_tables {
   python $baseDir/bin/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
                                                -c ${params.SBS_context} -S ${params.signature_tables} -l ${params.confidence_level} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \
-                                               -i $baseDir/output_tables -o "./" -n ${params.number_of_bootstrapped_samples}
+                                               -i $baseDir/output_tables -o "./" -n ${number_of_bootstrapped_samples}
   """
 }
 
@@ -535,14 +527,11 @@ process plot_bootstrap_attributions {
   file '*/*/bootstrap_plots/*/*.pdf' optional true
   file '*/*/bootstrap_plots/*/*/*.pdf' optional true
 
-  when:
-  params.perform_bootstrapping
-
   script:
   """
   python $baseDir/bin/plot_bootstrap_attributions.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
                                                      -c ${params.SBS_context} -S ${params.signature_tables} -I ${params.input_tables} \
-                                                     -i $baseDir/output_tables -o "./" -n ${params.number_of_bootstrapped_samples}
+                                                     -i $baseDir/output_tables -o "./" -n ${number_of_bootstrapped_samples}
   """
 }
 
@@ -557,9 +546,6 @@ process plot_metrics {
   file '*/*/bootstrap_plots/*.pdf' optional true
   file '*/*/bootstrap_plots/*/*.pdf' optional true
   file '*/*/bootstrap_plots/*/*/*.pdf' optional true
-
-  when:
-  params.perform_bootstrapping
 
   script:
   """
@@ -619,46 +605,23 @@ process plot_residuals {
   """
 }
 
-if (params.perform_bootstrapping) {
-  process move_bootstrap_outputs {
-    publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
+process move_bootstrap_outputs {
+  publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
 
-    input:
-    file output from final_outputs_post_bootstrap.collect()
-    each dataset from params.dataset
-    path output_path from "$baseDir/output_tables"
+  input:
+  file output from final_outputs_post_bootstrap.collect()
+  each dataset from params.dataset
+  path output_path from "$baseDir/output_tables"
 
-    output:
-    file("MSA_output_${dataset}.tar.gz")
+  output:
+  file("MSA_output_${dataset}.tar.gz")
 
-    shell:
-    """
-    cp -r ${output_path}/${dataset} .
-    cp -r ${params.optimisation_NNLS_output_path} ./outputs_optimisation
-    tar cvfh MSA_output_${dataset}.tar.gz ${dataset} ./outputs_optimisation
-    rm -rf ${dataset}
-    rm -rf outputs_optimisation
-    """
-  }
-} else {
-  process move_outputs {
-    publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
-
-    input:
-    file output from final_outputs_no_bootstrap.collect()
-    each dataset from params.dataset
-    path output_path from "$baseDir/output_tables"
-
-    output:
-    file("MSA_output_${dataset}.tar.gz")
-
-    shell:
-    """
-    cp -r ${output_path}/${dataset} .
-    cp -r ${params.optimisation_NNLS_output_path} ./outputs_optimisation
-    tar cvfh MSA_output_${dataset}.tar.gz ${dataset} ./outputs_optimisation
-    rm -rf ${dataset}
-    rm -rf outputs_optimisation
-    """
-  }
+  shell:
+  """
+  cp -r ${output_path}/${dataset} .
+  cp -r ${params.optimisation_NNLS_output_path} ./outputs_optimisation
+  tar cvfh MSA_output_${dataset}.tar.gz ${dataset} ./outputs_optimisation
+  rm -rf ${dataset}
+  rm -rf outputs_optimisation
+  """
 }
