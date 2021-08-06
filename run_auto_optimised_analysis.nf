@@ -176,6 +176,7 @@ if (params.SP_matrix_generator_output_path) {
 }
 
 process plot_input_spectra {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -202,11 +203,11 @@ process plot_input_spectra {
 }
 
 process plot_signatures {
+  tag "${mutation_type}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
   each mutation_type from params.mutation_types
-  each dataset from params.dataset
   file signatures from signatures_for_spectra
 
   output:
@@ -227,6 +228,7 @@ process plot_signatures {
 }
 
 process run_unoptimised_model {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables_unoptimised", mode: 'copy', overwrite: true
 
   input:
@@ -249,13 +251,11 @@ process run_unoptimised_model {
 }
 
 process run_simulations {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
   set dataset, mutation_type from unoptimised_attributions
-
-  when:
-  
 
   output:
   file("./SIM_${dataset}/WGS_SIM_${dataset}.${params.SBS_context}.csv") optional true
@@ -276,6 +276,7 @@ process run_simulations {
 }
 
 process run_optimisation_NNLS {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
@@ -305,6 +306,7 @@ process run_optimisation_NNLS {
 }
 
 process run_optimisation_NNLS_bootstrapping {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
@@ -334,6 +336,7 @@ process run_optimisation_NNLS_bootstrapping {
 }
 
 process make_optimisation_bootstrap_tables {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
@@ -358,6 +361,7 @@ process make_optimisation_bootstrap_tables {
 }
 
 process calculate_optimal_penalties {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.optimisation_NNLS_output_path}"
 
   input:
@@ -395,6 +399,7 @@ process calculate_optimal_penalties {
 }
 
 process plot_optimisation_plots {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.optimisation_plots_output_path}"
 
   input:
@@ -424,6 +429,7 @@ process plot_optimisation_plots {
 
 
 process run_NNLS_normal {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -455,6 +461,7 @@ process run_NNLS_normal {
 }
 
 process run_NNLS_bootstrapping {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -483,6 +490,7 @@ process run_NNLS_bootstrapping {
 }
 
 process make_bootstrap_tables {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -516,6 +524,7 @@ process make_bootstrap_tables {
 }
 
 process plot_bootstrap_attributions {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
@@ -536,6 +545,7 @@ process plot_bootstrap_attributions {
 }
 
 process plot_metrics {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
@@ -554,6 +564,7 @@ process plot_metrics {
 }
 
 process plot_fitted_spectra {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -582,6 +593,7 @@ process plot_fitted_spectra {
 }
 
 process plot_residuals {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -606,6 +618,7 @@ process plot_residuals {
 }
 
 process move_bootstrap_outputs {
+  tag "${dataset}"
   publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
 
   input:
