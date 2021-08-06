@@ -203,11 +203,12 @@ process plot_input_spectra {
 }
 
 process plot_signatures {
-  tag "${mutation_type}"
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
   each mutation_type from params.mutation_types
+  each dataset from params.dataset
   file signatures from signatures_for_spectra
 
   output:
