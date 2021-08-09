@@ -177,7 +177,7 @@ if __name__ == '__main__':
             CPs = [signatures_CPs_dict[threshold][signature][0] for threshold in signature_attribution_thresholds]
             make_lineplot(signature_attribution_thresholds, CPs, 'Sensitivity threshold', 'Confidence probability', 'Signature %s' % signature, output_folder + '/truth_studies/CP_curves/signature_%s_curve.pdf' % signature)
 
-    signatures_prevalences = pd.read_csv(input_attributions_folder + '/signatures_prevalences_' + mutation_type + '.csv', index_col=0)
+    signatures_prevalences = pd.read_csv(input_attributions_folder + '/signatures_prevalences_' + dataset_name + '_' + mutation_type + '.csv', index_col=0)
     make_boxplot(signatures_prevalences, 'Signature prevalence (%s)' % mutation_type, 'Signatures', 'Reconstructed (%)', savepath=output_folder + '/signature_prevalences.pdf')
 
     if 'SIM' in dataset_name:

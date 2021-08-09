@@ -130,11 +130,11 @@ if __name__ == '__main__':
     if args.abs_numbers:
         central_attribution_table = central_attribution_table_abs
         bootstrap_attribution_table_filename = bootstrap_attribution_table_abs_filename
-        filename = mutation_type + '_bootstrap_output_abs_mutations'
+        filename = dataset_name + '_' + mutation_type + '_bootstrap_output_abs_mutations'
     else:
         central_attribution_table = central_attribution_table_weights
         bootstrap_attribution_table_filename = bootstrap_attribution_table_weights_filename
-        filename = mutation_type + '_bootstrap_output_weights'
+        filename = dataset_name + '_' + mutation_type + '_bootstrap_output_weights'
 
     # limit the number of samples to analyse (if specified by -N option)
     if args.number_of_samples != -1:
@@ -361,13 +361,13 @@ if __name__ == '__main__':
 
     # common outputs
     confidence_intervals.to_csv(output_folder + '/CIs_' + filename + '.csv')
-    signatures_prevalences.to_csv(output_folder + '/signatures_prevalences_' + mutation_type + '.csv')
+    signatures_prevalences.to_csv(output_folder + '/signatures_prevalences_' + dataset_name + '_' + mutation_type + '.csv')
     write_data_to_JSON(attributions_per_sample_dict, output_folder + '/attributions_per_sample_' + filename + '.json')
     write_data_to_JSON(attributions_per_signature_dict, output_folder + '/attributions_per_signature_' + filename + '.json')
     write_data_to_JSON(stat_metrics_dict, output_folder + '/stat_metrics_' + filename + '.json')
     # # pd.to_json function does not fully support MultiIndex (present in signature tables), hence commented out for now
     # write_data_to_JSON(mutation_spectra_dict, output_folder + '/mutation_spectra_' + filename + '.json')
-    pruned_attribution_table.to_csv(output_folder + '/pruned_attribution_' + mutation_type + '_abs_mutations.csv')
+    pruned_attribution_table.to_csv(output_folder + '/pruned_attribution_' + dataset_name + '_' + mutation_type + '_abs_mutations.csv')
 
     print('All remaining outputs written. Done!')
     print('Elapsed time:', datetime.now() - start_time)

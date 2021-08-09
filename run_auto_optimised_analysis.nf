@@ -499,12 +499,12 @@ process make_bootstrap_tables {
   file bootstrap_weights from bootstrap_output_tables.collect()
 
   output:
-  file("./${dataset}/CIs_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
-  file("./${dataset}/signatures_prevalences_${mutation_type}.csv") into signature_prevalences
-  file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
-  file("./${dataset}/attributions_per_signature_${mutation_type}_bootstrap_output_${suffix}.json")
-  file("./${dataset}/stat_metrics_${mutation_type}_bootstrap_output_${suffix}.json")
-  file("./${dataset}/pruned_attribution_${mutation_type}_abs_mutations.csv")
+  file("./${dataset}/CIs_${dataset}_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
+  file("./${dataset}/signatures_prevalences_${dataset}_${mutation_type}.csv") into signature_prevalences
+  file("./${dataset}/attributions_per_sample_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
+  file("./${dataset}/attributions_per_signature_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json")
+  file("./${dataset}/stat_metrics_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json")
+  file("./${dataset}/pruned_attribution_${dataset}_${mutation_type}_abs_mutations.csv")
   file '*/truth_studies/*.csv' optional true
   file '*/truth_studies/*.json' optional true
 

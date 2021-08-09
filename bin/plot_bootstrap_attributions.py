@@ -189,12 +189,12 @@ if __name__ == '__main__':
             truth_attribution_table = truth_attribution_table.mul(np.asarray(input_mutations.sum(axis=0)), axis=0)
         central_attribution_table = central_attribution_table_abs
         colormap_label = 'Absolute mutations number'
-        input_filename_suffix = "_%s_bootstrap_output_abs_mutations.json" % mutation_type
+        input_filename_suffix = "_%s_%s_bootstrap_output_abs_mutations.json" % (dataset_name, mutation_type)
         savepath_filename = 'bootstrap_plot_abs_mutations'
     else:
         central_attribution_table = central_attribution_table_weights
         colormap_label = 'Relative contribution'
-        input_filename_suffix = "_%s_bootstrap_output_weights.json" % mutation_type
+        input_filename_suffix = "_%s_%s_bootstrap_output_weights.json" % (dataset_name, mutation_type)
         savepath_filename = 'bootstrap_plot_weights'
 
     # limit the number of samples to analyse (if specified by -N option)
