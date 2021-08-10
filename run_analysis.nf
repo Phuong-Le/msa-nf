@@ -165,6 +165,7 @@ if (params.SP_matrix_generator_output_path) {
 }
 
 process plot_input_spectra {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -191,6 +192,7 @@ process plot_input_spectra {
 }
 
 process plot_signatures {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -216,6 +218,7 @@ process plot_signatures {
 }
 
 process run_NNLS_normal {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -249,6 +252,7 @@ process run_NNLS_normal {
 
 
 process plot_fitted_spectra {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -277,6 +281,7 @@ process plot_fitted_spectra {
 }
 
 process plot_residuals {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move'
 
   input:
@@ -301,6 +306,7 @@ process plot_residuals {
 }
 
 process run_NNLS_bootstrapping {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -333,6 +339,7 @@ process run_NNLS_bootstrapping {
 }
 
 process make_bootstrap_tables {
+  tag "${mutation_type}/${dataset}"
   publishDir "$baseDir/output_tables", mode: 'copy', overwrite: true
 
   input:
@@ -341,12 +348,12 @@ process make_bootstrap_tables {
   file signatures from signatures_for_make_bootstrap_tables
 
   output:
-  file("./${dataset}/CIs_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
-  file("./${dataset}/signatures_prevalences_${mutation_type}.csv") into signature_prevalences
-  file("./${dataset}/attributions_per_sample_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
-  file("./${dataset}/attributions_per_signature_${mutation_type}_bootstrap_output_${suffix}.json")
-  file("./${dataset}/stat_metrics_${mutation_type}_bootstrap_output_${suffix}.json")
-  file("./${dataset}/pruned_attribution_${mutation_type}_abs_mutations.csv")
+  file("./${dataset}/CIs_${dataset}_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap
+  file("./${dataset}/signatures_prevalences_${dataset}_${mutation_type}.csv") into signature_prevalences
+  file("./${dataset}/attributions_per_sample_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json") into attributions_per_sample
+  file("./${dataset}/attributions_per_signature_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json")
+  file("./${dataset}/stat_metrics_${dataset}_${mutation_type}_bootstrap_output_${suffix}.json")
+  file("./${dataset}/pruned_attribution_${dataset}_${mutation_type}_abs_mutations.csv")
   file '*/truth_studies/*.csv' optional true
   file '*/truth_studies/*.json' optional true
 
@@ -370,6 +377,7 @@ process make_bootstrap_tables {
 }
 
 process plot_bootstrap_attributions {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
@@ -395,6 +403,7 @@ process plot_bootstrap_attributions {
 
 
 process plot_metrics {
+  tag "${mutation_type}/${dataset}"
   publishDir "${params.plots_output_path}", mode: 'move', overwrite: true
 
   input:
@@ -417,6 +426,7 @@ process plot_metrics {
 
 if (params.perform_bootstrapping) {
   process move_bootstrap_outputs {
+    tag "${dataset}"
     publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
 
     input:
@@ -425,17 +435,18 @@ if (params.perform_bootstrapping) {
     path output_path from "$baseDir/output_tables"
 
     output:
-    file("MSA_output_${dataset}.tar.gz")
+    file("MSA_output_${dataset}_${params.weak_threshold}_${params.strong_threshold}.tar.gz")
 
     shell:
     """
     cp -r ${output_path}/${dataset} .
-    tar cvfh MSA_output_${dataset}.tar.gz ${dataset}
+    tar cvfh MSA_output_${dataset}_${params.weak_threshold}_${params.strong_threshold}.tar.gz ${dataset}
     rm -rf ${dataset}
     """
   }
 } else {
   process move_outputs {
+    tag "${dataset}"
     publishDir "${params.tables_output_path}", mode: 'move', overwrite: true
 
     input:
@@ -444,12 +455,12 @@ if (params.perform_bootstrapping) {
     path output_path from "$baseDir/output_tables"
 
     output:
-    file("MSA_output_${dataset}.tar.gz")
+    file("MSA_output_${dataset}_${params.weak_threshold}_${params.strong_threshold}.tar.gz")
 
     shell:
     """
     cp -r ${output_path}/${dataset} .
-    tar cvfh MSA_output_${dataset}.tar.gz ${dataset}
+    tar cvfh MSA_output_${dataset}_${params.weak_threshold}_${params.strong_threshold}.tar.gz ${dataset}
     rm -rf ${dataset}
     """
   }

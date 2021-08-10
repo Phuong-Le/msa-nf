@@ -34,7 +34,15 @@ params.plots_output_path = params.output_path + "/plots"
 params.signature_tables = "$baseDir/signature_tables"
 params.signature_prefix = "sigProfiler" // prefix of signature files to use (e.g. sigProfiler, sigRandom)
 
+// simulations parameters
+params.run_only_simulations = false // set to true if only simulations are needed, these will be produced in $baseDir/output_tables folder
+params.number_of_simulated_samples = 1000 // at least 1000 is recommended
+params.add_noise = true // add noise in simulations (recommended)
+params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
+params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
+
 // optimisation flag and parameters
+params.run_only_optimisation = false // set to true if only optimisation is required, without final attributions
 params.optimisation_NNLS_output_path = "$baseDir/outputs_optimisation"
 params.optimisation_plots_output_path = params.plots_output_path + "/optimisation_plots"
 params.optimised = true // if set to false, optimisation will run but not be used in final attributions
@@ -46,16 +54,13 @@ params.number_of_bootstrapped_samples_in_optimisation = 100 // at least 100 is r
 params.number_of_bootstrapped_samples = 1000 // bootstrap variations in final attribution, at least 1000 is recommended
 params.confidence_level = 0.95 // specify the confidence level for CI calculation (default: 0.95)
 params.use_absolute_attributions = false // use absolute mutation counts in final bootstrap outputs (relative by default)
-params.number_of_simulated_samples = 1000 // at least 1000 is recommended
-params.add_noise = true // add noise in simulations (recommended)
-params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
-params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
 params.metric_to_prioritise = "specificity" // set a metric to prioritise (default: specificity), requiring at least the specified threshold or closest alternative
 params.metric_threshold = 0.95 // specify the minimum threshold of the prioritised metric
 params.signatures_to_prioritise = [] // set a list of signatures to prioritise (empty list means all, by default)
 params.no_CI_for_penalties = false // do not use confidence intervals for optimal penalties calculation
 params.calculate_penalty_on_average = false // apply criteria based on signatures overall (on average, less conservative), rather than maximising prioritised metric for every signature (more conservative)
 
+// plotting flags
 params.plot_optimisation_plots = true
 params.plot_signatures = true
 params.plot_input_spectra = true
@@ -289,6 +294,9 @@ process run_optimisation_NNLS {
   set dataset, mutation_type into optimisation_attribution_for_tables
   file("SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/*.csv")
 
+  when:
+  !params.run_only_simulations
+
   script:
   """
   mkdir -p ${params.optimisation_NNLS_output_path}/SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}
@@ -321,6 +329,9 @@ process run_optimisation_NNLS_bootstrapping {
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_stat_info.csv")
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_weights_table.csv") into optimisation_bootstrap_output_tables
   set dataset, mutation_type into optimisation_bootstrap_outputs
+
+  when:
+  !params.run_only_simulations
 
   script:
   """
@@ -419,7 +430,7 @@ process plot_optimisation_plots {
   python $baseDir/bin/plot_metric_heatmaps.py -d SIM_${dataset} -t ${mutation_type} \
                                               -i ${params.optimisation_NNLS_output_path} -o "./" \
                                               -c ${params.SBS_context} \
-                                              -l ${params.confidence_level} \
+                                              -l ${params.metric_threshold} \
                                               -W ${weak_thresholds.join(' ')} \
                                               -S ${strong_thresholds.join(' ')} \
                                               -T ${params.signature_attribution_thresholds.join(' ')} \
@@ -450,6 +461,9 @@ process run_NNLS_normal {
   set dataset, mutation_type into attribution_for_metrics
   set dataset, mutation_type into attribution_for_tables
 
+  when:
+  !params.run_only_optimisation
+
   script:
   """
   python $baseDir/bin/run_NNLS.py -d ${dataset} -t ${mutation_type} -c ${params.SBS_context} ${optimised_flag} \
@@ -476,6 +490,9 @@ process run_NNLS_bootstrapping {
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_tables
+
+  when:
+  !params.run_only_optimisation
 
   script:
   """
@@ -560,7 +577,7 @@ process plot_metrics {
 
   script:
   """
-  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -l ${params.confidence_level} -i $baseDir/output_tables -o "./"
+  python $baseDir/bin/plot_metrics.py -d ${dataset} -t ${mutation_type} -l ${params.metric_threshold} -i $baseDir/output_tables -o "./"
   """
 }
 

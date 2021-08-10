@@ -46,6 +46,7 @@ nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test -
 
 | Parameters  | Default value | Description |
 |-----------|-------------|-------------|
+| --run_only_optimisation | false | set to true if only optimisation results are required, without final attributions |
 | --optimisation_plots_output_path | params.plots_output_path + "/optimisation_plots" | directory to store optimisation plots |
 | --number_of_bootstrapped_samples | 100 | number of bootstrap samples variations (at least 100 is recommended) |
 | --optimised | true | perform signature optimisation for NNLS attribution method; if set to false, optimisation will run but not be used in final attributions |
@@ -57,15 +58,20 @@ nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test -
 | --number_of_bootstrapped_samples | 1000 | number of bootstrap variations in final attribution, at least 100 is recommended |
 | --confidence_level | 95 | confidence level for CI calculation, in percent |
 | --use_absolute_attributions | false | use absolute mutation counts in final bootstrap outputs (relative by default) |
-| --number_of_simulated_samples | 1000 | number of simulated samples in data-driven model, at least 1000 is recommended |
-| --add_noise | true | add noise in simulations (recommended) |
-| --noise_type | "gaussian" | type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default) |
-| --noise_stdev | 10 | standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default) |
 | --metric_to_prioritise | "specificity" | metric to prioritise (default: specificity), requiring at least the specified threshold or closest alternative |
 | --metric_threshold | 0.95 | minimum threshold of the prioritised metric |
 | --signatures_to_prioritise | [] | list of signatures to prioritise (empty list means all, by default) |
 | --no_CI_for_penalties | false | do not use confidence intervals for optimal penalties calculation, rather do standard count experiment |
 | --calculate_penalty_on_average | false | apply criteria based on signatures overall (on average, less conservative), rather than maximising prioritised metric for every signature (default, more conservative) |
+
+### Simulation options
+| Parameters  | Default value | Description |
+|-----------|-------------|-------------|
+| --run_only_simulations | false | set to true if only simulations are needed, which will be produced in $baseDir/output_tables folder |
+| --number_of_simulated_samples | 1000 | number of simulated samples in data-driven model, at least 1000 is recommended |
+| --add_noise | true | add noise in simulations (recommended) |
+| --noise_type | "gaussian" | type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default) |
+| --noise_stdev | 10 | standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default) |
 
 ### Plotting options
 
@@ -90,9 +96,14 @@ git clone https://gitlab.com/s.senkin/MSA.git
 cd MSA
 ```
 
-Run on the test dataset (or adjust parameters/input matrices accordingly)
+Run the fully automised pipeline with optimisation on the test dataset (or adjust parameters/input matrices accordingly)
 ```
 nextflow run run_auto_optimised_analysis.nf --dataset SIM_test --input_tables ./input_tables --output_path ./test
+```
+
+Alternatively, to run the pipeline without optimisation, using fixed penalties on the test dataset:
+```
+nextflow run run_analysis.nf --dataset SIM_test --weak_threshold 0.02 --input_tables ./input_tables --output_path ./test
 ```
 
 ### Setting up dependencies
@@ -158,24 +169,3 @@ python bin/run_NNLS.py -t SBS -c 192 -x
 ```
 
 Bootstrap option *-B* allows to run this script for a perturbed mutation table, using method specified with *--bootstrap_method* option (see more in the script).
-
-## Similarity and attribution efficiency measurements
-
-### Optimisation thresholds parameter space scan
-
-A dedicated [Nextflow](https://www.nextflow.io/) [script](https://gitlab.com/s.senkin/MSA/run_NNLS_optimisation.nf) has been implemented to run the parameter space scan of the optimisation thresholds for NNLS routine. The default configuration uses an example simulated *SIM_ESCC* dataset, based on low-penalty attribution of ESCC-like simulated samples. This optimisation can be run locally or on your favourite cluster:
-
-```
-nextflow run https://gitlab.com/s.senkin/MSA/run_NNLS_optimisation.nf -profile docker
-```
-
-The output will be produced in **output_opt_check** folder.
-
-### Fixed attribution results comparison
-
-Upon running signature attribution, the script to measure and plot attribution efficiencies for various methods can be run as follows (*-t* flag to choose other mutations types: *DBS* or *ID*, help on more flags with *-h*):
-```
-python bin/measure_attribution_efficiency.py -t SBS
-```
-
-All the efficiency plots are be produced in **efficiency_plots** folder.
