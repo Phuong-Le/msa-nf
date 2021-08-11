@@ -1,5 +1,6 @@
 import argparse
 import os
+import warnings
 import copy
 import pandas as pd
 import numpy as np
@@ -91,7 +92,7 @@ def measure_metrics(method):
                         continue
                     similarity = calculate_similarity(reco_sample, truth_sample, metric)
                     if np.isnan(similarity):
-                        print('Warning: Nan similarity in metric %s, thresholds %s/%s' % (metric, weak_threshold, strong_threshold), 'sample:',i,reco_sample,truth_sample)
+                        warnings.warn('Warning: Nan similarity in metric %s, thresholds %s/%s' % (metric, weak_threshold, strong_threshold), 'sample:',i,reco_sample,truth_sample)
                     similarities.append(similarity)
 
                 similarity_tables[metric].loc[weak_threshold, strong_threshold] = np.mean(similarities)
@@ -113,28 +114,32 @@ def calculate_optimal_penalty(sensitivity_table, specificity_table, label = '', 
     assert sensitivity_table.index.equals(specificity_table.index)
     assert sensitivity_table.columns.equals(specificity_table.columns)
     if np.isnan(sensitivity_table.values).all():
-        print('Warning: %s sensitivity table is full of NaN values, returning NaN optimal penalty' % label)
+        warnings.warn('Warning: %s sensitivity table is full of NaN values, returning NaN optimal penalty' % label)
         return np.nan, np.nan
     if np.isnan(specificity_table.values).all():
-        print('Warning: %s specificity table is full of NaN values, returning NaN optimal penalty' % label)
+        warnings.warn('Warning: %s specificity table is full of NaN values, returning NaN optimal penalty' % label)
         return np.nan, np.nan
     print('Calculating optimal penalties for %s, prioritising %s with %.2f threshold' % (label, metric_to_prioritise, threshold))
     if metric_to_prioritise == 'specificity':
         if specificity_table.max().max() < threshold:
-            print('Warning: %s specificity never reaches %.2f, returning best alternative which is %.2f' % (label, threshold, specificity_table.max().max()))
+            warnings.warn('Warning: %s specificity never reaches %.2f, returning best alternative which is %.2f' % (label, threshold, specificity_table.max().max()))
             # returning the location of the maximum sensitivity element, out of elements with maximum specificity
-            return sensitivity_table[specificity_table==specificity_table.stack().max()].stack().idxmax()
+            optimal_penalties = sensitivity_table[specificity_table==specificity_table.stack().max()].stack().idxmax()
         else:
-            # returning the location of the maximum specificity element, out of elements with maximum sensitivity where specificity > threshold
-            return specificity_table[sensitivity_table==sensitivity_table[specificity_table>=threshold].stack().max()].stack().idxmax()
+            # returning the location of the maximum sensitivity element, out of elements where specificity >= threshold
+            optimal_penalties = sensitivity_table[specificity_table>=threshold].stack().idxmax()
     elif metric_to_prioritise == 'sensitivity':
         if sensitivity_table.max().max() < threshold:
-            print('Warning: %s specificity never reaches %.2f, returning best alternative which is %.2f' % (label, threshold, sensitivity_table.max().max()))
+            warnings.warn('Warning: %s sensitivity never reaches %.2f, returning best alternative which is %.2f' % (label, threshold, sensitivity_table.max().max()))
             # returning the location of the maximum specificity element, out of elements with maximum sensitivity
-            return specificity_table[sensitivity_table==sensitivity_table.stack().max()].stack().idxmax()
+            optimal_penalties = specificity_table[sensitivity_table==sensitivity_table.stack().max()].stack().idxmax()
         else:
-            # returning the location of the maximum sensitivity element, out of elements with maximum specificity where sensitivity > threshold
-            return sensitivity_table[specificity_table==specificity_table[sensitivity_table>=threshold].stack().max()].stack().idxmax()
+            # returning the location of the maximum specificity element, out of elements where sensitivity >= threshold
+            optimal_penalties = specificity_table[sensitivity_table>=threshold].stack().idxmax()
+    if np.nan in optimal_penalties:
+        warnings.warn('Warning: nan penalties in', optimal_penalties)
+    print('Optimal penalties returned:', optimal_penalties)
+    return optimal_penalties
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -291,7 +296,7 @@ if __name__ == '__main__':
     # no-CI metrics with simple approach
     sensitivity_table, specificity_table, precision_table, accuracy_table, F1_table, \
         MCC_table, similarity_tables, similarity_uncertainty_tables, rss_table, chi2_table = measure_metrics(method)
-    
+
     # calculate optimal penalties and write to files
     optimal_penalties = pd.DataFrame(dtype=np.float64, index=all_signatures, columns = ['optimal_weak_penalty', 'optimal_strong_penalty'])
     weak_penalty_file = open(output_path + "/optimal_weak_penalty", "w+")
@@ -321,7 +326,7 @@ if __name__ == '__main__':
     else:
         optimal_weak_penalty = optimal_penalties['optimal_weak_penalty'].dropna().max()
         optimal_strong_penalty = optimal_penalties['optimal_strong_penalty'].dropna().max()
-        if average:  
+        if average:
             optimal_weak_penalty = average_optimal_weak_penalty
             optimal_strong_penalty = average_optimal_strong_penalty
     optimal_penalties.loc['average', 'optimal_weak_penalty'] = average_optimal_weak_penalty
