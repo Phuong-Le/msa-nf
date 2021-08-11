@@ -193,9 +193,9 @@ if __name__ == '__main__':
         stat_scores_per_sig = {}
         stat_scores_from_CI_per_sig = {}
         for signature in signatures_to_consider:
-            stat_scores_per_sig[signature] = pd.DataFrame(index=central_attribution_table.index, columns=scores, dtype=float)
+            stat_scores_per_sig[signature] = pd.DataFrame(columns=scores, dtype=float)
             stat_scores_from_CI_per_sig[signature] = pd.DataFrame(columns=scores, dtype=float)
-        stat_scores_tables = pd.DataFrame(index=central_attribution_table.index, columns=scores, dtype=float)
+        stat_scores_tables = pd.DataFrame(columns=scores, dtype=float)
         stat_scores_from_CI_tables = pd.DataFrame(columns=scores, dtype=float)
         lower_CI_attributions = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
         signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
