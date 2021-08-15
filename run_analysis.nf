@@ -41,6 +41,8 @@ params.weak_threshold = 0.02
 params.strong_threshold = 0.02
 
 // plotting flags
+params.plot_bootstrap_attributions = true
+params.plot_metrics = true
 params.plot_signatures = true
 params.plot_input_spectra = true
 params.plot_fitted_spectra = true
@@ -391,7 +393,7 @@ process plot_bootstrap_attributions {
   file '*/*/bootstrap_plots/*/*/*.pdf' optional true
 
   when:
-  params.perform_bootstrapping
+  params.perform_bootstrapping && params.plot_bootstrap_attributions
 
   script:
   """
@@ -416,7 +418,7 @@ process plot_metrics {
   file '*/*/bootstrap_plots/*/*/*.pdf' optional true
 
   when:
-  params.perform_bootstrapping
+  params.perform_bootstrapping && params.plot_metrics
 
   script:
   """

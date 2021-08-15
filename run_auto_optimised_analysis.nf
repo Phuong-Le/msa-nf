@@ -47,7 +47,7 @@ params.optimisation_NNLS_output_path = "$baseDir/outputs_optimisation"
 params.optimisation_plots_output_path = params.plots_output_path + "/optimisation_plots"
 params.optimised = true // if set to false, optimisation will run but not be used in final attributions
 params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
-params.weak_thresholds = ['0.0000', '0.0100', '0.0200', '0.0300', '0.0400', '0.0500'] // range of L2 similarity decrease thresholds to be scanned, excluding weakest signatures - adjust if needed
+params.weak_thresholds = ['0.0000', '0.0001', '0.0002', '0.0003'] // range of L2 similarity decrease thresholds to be scanned, excluding weakest signatures - adjust if needed
 params.strong_thresholds = ['0.0000'] // range of L2 similarity increase thresholds to be scanned, including strongest signatures: only one is sufficient in default removal strategy
 params.bootstrap_method = "binomial" // bootstrap flag and method (binomial, multinomial, residuals, classic, bootstrap_residuals)
 params.number_of_bootstrapped_samples_in_optimisation = 100 // at least 100 is recommended
@@ -62,6 +62,8 @@ params.calculate_penalty_on_average = false // apply criteria based on signature
 
 // plotting flags
 params.plot_optimisation_plots = true
+params.plot_bootstrap_attributions = true
+params.plot_metrics = true
 params.plot_signatures = true
 params.plot_input_spectra = true
 params.plot_fitted_spectra = false
@@ -549,6 +551,9 @@ process plot_bootstrap_attributions {
   set dataset, mutation_type from attribution_for_bootstrap_plots
   file bootstrap_attributions from attributions_per_sample.collect()
 
+  when:
+  params.plot_bootstrap_attributions
+
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
   file '*/*/bootstrap_plots/*/*.pdf' optional true
@@ -569,6 +574,9 @@ process plot_metrics {
   input:
   set dataset, mutation_type from attribution_for_metrics
   file prevalences from signature_prevalences.collect()
+
+  when:
+  params.plot_metrics
 
   output:
   file '*/*/bootstrap_plots/*.pdf' optional true
