@@ -154,6 +154,7 @@ if __name__ == '__main__':
 
     similarity_tables = {}
     stat_scores_tables = pd.DataFrame(index = methods, columns = scores)
+    stat_scores_per_sig = {}
     for method, reco_table_filename, truth_table_filename in zip(methods,reco_table_filenames,truth_table_filenames):
         reco_table = pd.read_csv(reco_table_filename, index_col=0)
         truth_table = pd.read_csv(truth_table_filename, index_col=0)
@@ -173,6 +174,11 @@ if __name__ == '__main__':
         # reindex so that columns ordering is the same for both reco and truth
         truth_table = truth_table.reindex(reco_table.columns, axis=1)
         all_signatures = list(truth_table.columns)
+
+        # initialise stat scores dataframes per signature
+        for signature in all_signatures:
+            if not signature in stat_scores_per_sig.keys():
+                stat_scores_per_sig[signature] = pd.DataFrame(index = methods, columns=scores, dtype=float)
 
         if set(reco_table.columns.to_list()) != set(truth_table.columns.to_list()):
             # print(reco_table.columns.to_list())
@@ -199,6 +205,8 @@ if __name__ == '__main__':
         # calculate stat scores
         print('Method:', method)
         stat_scores_tables.loc[method, :] = calculate_stat_scores(all_signatures, reco_table, truth_table, number_of_samples)
+        for signature in all_signatures:
+            stat_scores_per_sig[signature].loc[method, :] = calculate_stat_scores([signature], reco_table, truth_table, number_of_samples)
 
         boxplot_savepath = output_path + '/box_plots/' + dataset + '_' + mutation_type + '_' + method + '.pdf'
         if options.suffix:
@@ -210,4 +218,6 @@ if __name__ == '__main__':
     if options.suffix:
         comparison_savepath = comparison_savepath.replace('.pdf','_%s.pdf' % options.suffix)
     make_efficiency_comparison_plot(similarity_tables, 'Signature attribution efficiencies (%s)' % mutation_type, 'Metrics', 'Similarities', savepath = comparison_savepath)
-    make_efficiency_comparison_plot(stat_scores_tables, 'Further metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath = comparison_savepath.replace('efficiencies.pdf','further_metrics.pdf'))
+    make_efficiency_comparison_plot(stat_scores_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath = comparison_savepath.replace('efficiencies.pdf','overall_metrics.pdf'))
+    for signature in all_signatures:
+        make_efficiency_comparison_plot(stat_scores_per_sig[signature], 'Signature %s metrics' % (signature), 'Metrics', 'Values', savepath = comparison_savepath.replace('efficiencies.pdf', signature + '_metrics.pdf'))
