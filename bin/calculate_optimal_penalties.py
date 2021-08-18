@@ -91,8 +91,8 @@ def measure_metrics(method):
                         # similarity (e.g. cosine or JS) is undefined for zero samples, so skipping
                         continue
                     similarity = calculate_similarity(reco_sample, truth_sample, metric)
-                    if np.isnan(similarity):
-                        warnings.warn('Warning: Nan similarity in metric %s, thresholds %s/%s' % (metric, weak_threshold, strong_threshold), 'sample:',i,reco_sample,truth_sample)
+                    # if np.isnan(similarity):
+                    #     warnings.warn('Warning: Nan similarity in metric %s, thresholds %s/%s, sample: %s, %s, %s' % (metric, weak_threshold, strong_threshold, i, reco_sample, truth_sample))
                     similarities.append(similarity)
 
                 similarity_tables[metric].loc[weak_threshold, strong_threshold] = np.mean(similarities)
@@ -159,7 +159,7 @@ if __name__ == '__main__':
                       help="set path to save output files")
     parser.add_argument("--no_CI", dest="no_CI", action="store_true",
                       help="do not use confidence intervals to pick optimal penalties")
-    parser.add_argument("-M", "--metric_to_prioritise", dest="metric_to_prioritise", default='specifcity',
+    parser.add_argument("-M", "--metric_to_prioritise", dest="metric_to_prioritise", default='specificity',
                       help="set a metric to prioritise (default: specificity), requiring at least the specified threshold or closest alternative")
     parser.add_argument("-T", "--metric_threshold", dest="metric_threshold", default=0.95, type=float,
                       help="specify the minimum threshold of the prioritised metric")
