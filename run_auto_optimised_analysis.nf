@@ -89,11 +89,12 @@ no_CI_for_penalties_flag = (params.no_CI_for_penalties) ? "--no_CI" : ''
 calculate_penalty_on_average_flag = (params.calculate_penalty_on_average) ? "--average" : ''
 prioritised_signatures_flag = (params.signatures_to_prioritise) ? "--signatures_to_prioritise " + params.signatures_to_prioritise.join(' ') : ''
 // override number of samples/variations for test run
-number_of_bootstrapped_samples_in_optimisation = (params.dataset == ['SIM_test']) ? 10 : params.number_of_bootstrapped_samples_in_optimisation
-number_of_bootstrapped_samples = (params.dataset == ['SIM_test']) ? 10 : params.number_of_bootstrapped_samples
-number_of_simulated_samples = (params.dataset == ['SIM_test']) ? 10 : params.number_of_simulated_samples
-weak_thresholds = (params.dataset == ['SIM_test']) ? ['0.0000', '0.0100', '0.0200'] : params.weak_thresholds
-strong_thresholds = (params.dataset == ['SIM_test']) ? ['0.0000'] : params.strong_thresholds
+test_run = ((params.dataset == ['SIM_test']) || (params.dataset == 'SIM_test')) ? true : false
+number_of_bootstrapped_samples_in_optimisation = (test_run) ? 10 : params.number_of_bootstrapped_samples_in_optimisation
+number_of_bootstrapped_samples = (test_run) ? 10 : params.number_of_bootstrapped_samples
+number_of_simulated_samples = (test_run) ? 10 : params.number_of_simulated_samples
+weak_thresholds = (test_run) ? ['0.0000', '0.0100', '0.0200'] : params.weak_thresholds
+strong_thresholds = (test_run) ? ['0.0000'] : params.strong_thresholds
 
 params.help = null
 
