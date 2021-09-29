@@ -35,14 +35,14 @@ All parameters are described in the dedicated [wiki page](https://gitlab.com/s.s
 | Parameters  | Default value | Description |
 |-----------|-------------|-------------|
 | --help | null | print usage and optional parameters |
-| --SP_matrix_generator_output_path | null | optionally use SigProfilerMatrixGenerator output from specified path |
-| --SP_extractor_output_path | null | optionally use SigProfilerExtractor output from specified path to attribute signatures extracted by SigProfiler |
+| --SP_matrix_generator_output_path | null | optionally use SigProfilerMatrixGenerator output from specified full path |
+| --SP_extractor_output_path | null | optionally use SigProfilerExtractor output from specified full path to attribute signatures extracted by SigProfiler |
 | --dataset | SIM_test | set the name of the dataset. If no SigProfiler output is provided, the matrices must exist in params.input_tables folder (see example) |
-| --input_tables | $baseDir/input_mutation_tables | if not using SigProfiler outputs, location of input mutation tables, the repository one is used by default |
-| --signature_tables | $baseDir/signature_tables | if not using SigProfiler outputs, location of input signature tables, the repository one is used by default |
-| --signature_prefix | sigProfiler |  if not using SigProfiler outputs, prefix of signature files to use, must be located in signature_tables folder (e.g. sigProfiler, sigRandom) |
+| --input_tables | $baseDir/input_mutation_tables | if not using SigProfiler outputs, full path to input mutation tables, the repository one is used by default |
+| --signature_tables | $baseDir/signature_tables | if not using SigProfiler outputs, full path to input signature tables, the repository one is used by default |
+| --signature_prefix | sigProfiler | if not using SigProfiler outputs, prefix of signature files to use, must be located in signature_tables folder (e.g. sigProfiler, sigRandom) |
 | --output_path | . | output path for plots and tables |
-| --mutation_types | ['SBS', 'DBS', 'ID'] | mutation types to analyse. Only one can be specified from command line, or a list in the run_auto_optimised_analysis.nf file |
+| --mutation_types | \['SBS', 'DBS', 'ID'\] | mutation types to analyse. Only one can be specified from command line, or a list in the run_auto_optimised_analysis.nf file |
 | --number_of_samples | -1 | number of samples to analyse (-1 means all available) |
 | --SBS_context | 96 | SBS context to use (96, 192 or 288) |
 | --COSMIC_signatures | false | if set to true, COSMIC signatures are used form SigProfiler output, otherwise de-novo ones are used |
@@ -59,12 +59,12 @@ cd MSA
 
 Run the fully automised pipeline with optimisation on the test dataset (or adjust parameters/input matrices accordingly)
 ```
-nextflow run run_auto_optimised_analysis.nf --dataset SIM_test --input_tables ./input_tables --output_path ./test
+nextflow run run_auto_optimised_analysis.nf -profile docker --dataset SIM_test --input_tables $PWD/input_mutation_tables --output_path test
 ```
 
 Alternatively, to run the pipeline without optimisation, using fixed penalties on the test dataset:
 ```
-nextflow run run_analysis.nf --dataset SIM_test --weak_threshold 0.02 --input_tables ./input_tables --output_path ./test
+nextflow run run_analysis.nf -profile docker --dataset SIM_test --weak_threshold 0.02 --input_tables $PWD/input_mutation_tables --output_path test
 ```
 
 ### Setting up dependencies
