@@ -23,7 +23,9 @@ The pipeline should run everything and produce all the results automatically. Yo
 MSA natively supports [SigProfilerExtractor](https://github.com/AlexandrovLab/SigProfilerExtractor) and [SigProfilerMatrixGenerator](https://github.com/AlexandrovLab/SigProfilerMatrixGenerator) outputs.
 
 ```
-nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test --SP_matrix_generator_output_path path/to/SP_ME/ --SP_extractor_output_path path/to/SP/
+nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test \
+                              --SP_matrix_generator_output_path /full/path/to/SP_ME/ \
+                              --SP_extractor_output_path /full/path/to/SP/
 ```
 
 ## Options
