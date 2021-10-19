@@ -125,14 +125,14 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("-i", "--input_attributions_folder", dest="input_attributions_folder", default='output_tables/',
                         help="set path to NNLS output data")
-    parser.add_argument("-d", "--dataset", dest="dataset_name", default='ESCC',
-                        help="set the dataset name (e.g. ESCC, TCE)")
+    parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM_test',
+                        help="set the dataset name (e.g. SIM_test)")
     parser.add_argument("-l", "--confidence_level", dest="confidence_level", default=0.95, type=float,
                         help="specify the confidence level for CL line plotting (default: 0.95)")
     parser.add_argument("-o", "--output_folder", dest="output_folder", default='plots/',
                         help="set path to save plots")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                        help="set mutation type (SBS, DBS, ID)")
+                        help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                         help="print additional information for debugging")
 
@@ -147,8 +147,8 @@ if __name__ == '__main__':
 
     scores = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'F1', 'MCC']
 
-    if mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
+    if mutation_type not in ['SBS', 'DBS', 'ID', 'SV', 'CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     if not input_attributions_folder:
         parser.error("Please specify the input path for reconstructed weights tables using -i option.")

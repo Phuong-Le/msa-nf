@@ -99,8 +99,8 @@ if __name__ == '__main__':
         print('Converting %s signature tables from SigProfilerExtractor output %s' % (signatures_type, input_path))
 
     for mutation_type in mutation_types:
-        if mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
-            raise ValueError("Unsupported mutation type: %s. Supported types: SBS, DBS, ID, SV" % mutation_type)
+        if mutation_type not in ['SBS', 'DBS', 'ID', 'SV', 'CNV']:
+            raise ValueError("Unsupported mutation type: %s. Supported types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     signatures = {}
     for mutation_type in mutation_types:
@@ -145,6 +145,8 @@ if __name__ == '__main__':
                         context = 83
                     elif mutation_type=='SV':
                         context = 32
+                    elif mutation_type=='CNV':
+                        context = 48
                     if not str(context) in signature_table:
                         continue
                     signature_table_to_reindex = pd.read_csv(signature_table, sep='\t', index_col=0)
@@ -189,6 +191,8 @@ if __name__ == '__main__':
                         continue
                     if mutation_type=='SV' and not '32' in file:
                         continue
+                    if mutation_type=='CNV' and not '48' in file:
+                        continue
                     # simply overwrite index for other mutation types (equality assumption)
                     print('Converting:', mutation_type, file)
                     input_table = pd.read_csv(file, sep='\t', index_col=0)
@@ -197,7 +201,7 @@ if __name__ == '__main__':
                         new_filename = output_path + '/%s/WGS_%s.dinucs.csv' % (dataset_name, dataset_name)
                     elif mutation_type == 'ID':
                         new_filename = output_path + '/%s/WGS_%s.indels.csv' % (dataset_name, dataset_name)
-                    elif mutation_type == 'SV':
-                        new_filename = output_path + '/%s/WGS_%s.SV.csv' % (dataset_name, dataset_name)
+                    else: # SV and CNV
+                        new_filename = output_path + '/%s/WGS_%s.%s.csv' % (dataset_name, dataset_name, mutation_type)
                     input_table.to_csv(new_filename, sep = ',')
         print('Done, please check the outputs:', output_path + '/' + dataset_name)

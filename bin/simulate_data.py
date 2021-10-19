@@ -92,7 +92,7 @@ def plot_mutational_burden(mutational_burden, mu=None, sigma=None, title='Total'
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                        help="set mutation type (SBS, DBS, ID)")
+                        help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-c", "--context", dest="context", default=96, type=int,
                         help="set SBS context (96, 192)")
     parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
@@ -139,9 +139,9 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (or '-t DBS', '-t ID').")
-    elif mutation_type not in ['SBS','DBS','ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
-    
+    elif mutation_type not in ['SBS','DBS','ID','SV','CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
+
     if mutation_type=='SBS':
         output_filename = '%s/WGS_%s.%i.csv' % (output_path, dataset_name, context)
         if context==96:
@@ -161,6 +161,10 @@ if __name__ == '__main__':
                                             (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
     elif mutation_type=='ID':
         output_filename = '%s/WGS_%s.indels.csv' % (output_path, dataset_name)
+        reference_signatures = pd.read_csv('%s/%s_%s_signatures.csv' %
+                                            (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
+    else: # SV and CNV
+        output_filename = '%s/WGS_%s.%s.csv' % (output_path, dataset_name, mutation_type)
         reference_signatures = pd.read_csv('%s/%s_%s_signatures.csv' %
                                             (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
@@ -224,7 +228,7 @@ if __name__ == '__main__':
         generated_mutational_burdens.append(mutational_burden)
     generated_mutational_burdens = np.asarray(generated_mutational_burdens)
     generated_mutational_burdens = np.nan_to_num(generated_mutational_burdens)
-    
+
     # optionally, inject additional signatures:
     if args.inject_signatures:
         for signature in signatures_to_inject.keys():
@@ -259,10 +263,10 @@ if __name__ == '__main__':
                 weights[signature] = 0
             generated_weights.loc[i,signature] = weights[signature]
             generated_mutations[i] += reference_signatures[signature]*weights[signature]
-        
+
         # multiply by mutational burden
         generated_mutations[i] = generated_mutational_burdens[i]*generated_mutations[i]
-        
+
         # optionally, add noise:
         if args.add_noise:
             if args.noise_type=="gaussian" or args.noise_type=="Gaussian" or args.noise_type=="normal" or args.noise_type=="Normal":
@@ -289,7 +293,7 @@ if __name__ == '__main__':
         # rounding and converting to integer counts
         generated_mutations[i] = round(generated_mutations[i],0)
         generated_mutations[i] = generated_mutations[i].astype(int)
-    
+
     # treating nans with zero for generated weights
     generated_weights.fillna(0, inplace=True)
     # plot total mutational burden distribution:

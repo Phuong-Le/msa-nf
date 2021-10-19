@@ -481,7 +481,7 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
                         help="set the dataset name (SIM by default)")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                        help="set mutation type (SBS, DBS, ID, SV)")
+                        help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-c", "--context", dest="context", default=96, type=int,
                         help="set SBS context (96, 192)")
     parser.add_argument("-i", "--input_path", dest="input_path", default='input_mutation_tables/',
@@ -534,8 +534,8 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (or '-t DBS', '-t ID').")
-    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
-        raise ValueError("Error: Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
+    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV', 'CNV']:
+        raise ValueError("Error: Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     if mutation_type=='SBS':
         if context==96:
@@ -552,9 +552,9 @@ if __name__ == '__main__':
     elif mutation_type=='ID':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=0)
         input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0)
-    elif mutation_type=='SV':
+    else: # SV and CNV
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), sep=None, index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.SV.csv' % (input_path, dataset_name, dataset_name), sep=None, index_col=0)
+        input_mutations = pd.read_csv('%s/%s/WGS_%s.%s.csv' % (input_path, dataset_name, dataset_name, mutation_type), sep=None, index_col=0)
 
     print("Performing NNLS for %s dataset, %s mutation type." % (dataset_name, mutation_type))
     if mutation_type=='SBS':

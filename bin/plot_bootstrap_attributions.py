@@ -117,7 +117,7 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--output_folder", dest="output_folder", default='plots/',
                         help="set path to save plots")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                        help="set mutation type (SBS, DBS, ID)")
+                        help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-c", "--context", dest="context", default=192, type=int,
                         help="set SBS context (96, 192)")
     parser.add_argument("-a", "--plot_absolute_numbers", dest="abs_numbers", action="store_true",
@@ -144,8 +144,8 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (DBS, ID).")
-    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
+    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV', 'CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     print("*"*50)
     print("Making plots for %s mutation type, %s dataset" % (mutation_type, dataset_name))
@@ -169,9 +169,9 @@ if __name__ == '__main__':
     elif mutation_type=='ID':
         # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
         input_mutations = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
-    elif mutation_type=='SV':
+    else: # SV and CNV
         # signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
-        input_mutations = pd.read_csv('%s/%s/WGS_%s.SV.csv' % (input_mutations_folder, dataset_name, dataset_name), index_col=0)
+        input_mutations = pd.read_csv('%s/%s/WGS_%s.%s.csv' % (input_mutations_folder, dataset_name, dataset_name, mutation_type), index_col=0)
 
     if 'SIM' in dataset_name:
         if mutation_type=='SBS':
@@ -180,8 +180,8 @@ if __name__ == '__main__':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.dinucs.weights.csv' % dataset_name, index_col=0)
         elif mutation_type=='ID':
             truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.indels.weights.csv' % dataset_name, index_col=0)
-        elif mutation_type=='SV':
-            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.SV.weights.csv' % dataset_name, index_col=0)
+        else: # SV and CNV
+            truth_attribution_table = pd.read_csv(input_attributions_folder + '/WGS_%s.%s.weights.csv' % (dataset_name, mutation_type), index_col=0)
 
     if args.abs_numbers:
         if 'SIM' in dataset_name:

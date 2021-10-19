@@ -86,7 +86,7 @@ def make_efficiency_comparison_plot(input_data, title, xlabel, ylabel, savepath 
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-t", "--mutation_type", dest="mutation_type", default='SBS',
-                      help="set mutation type (SBS, DBS, ID)")
+                      help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
     parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
@@ -124,8 +124,8 @@ if __name__ == '__main__':
         print("Warning: overriding methods with ['unoptimised','optimised'] for %s mutation type" % mutation_type)
         methods = ['unoptimised','optimised']
 
-    if mutation_type not in ['SBS','DBS','ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
+    if mutation_type not in ['SBS','DBS','ID','SV','CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     output_path = options.output_path
     number_of_samples = options.number_of_samples
@@ -147,6 +147,9 @@ if __name__ == '__main__':
     elif mutation_type=='ID':
         reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_ID_weights_table.csv' % dataset for method in methods]
         truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.indels.weights.csv'] * len(methods)
+    else: # SV and CNV
+        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_%s_weights_table.csv' % (dataset, mutation_type) for method in methods]
+        truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.' + mutation_type + '.weights.csv'] * len(methods)
 
     # add contexts to method names
     if mutation_type=='SBS':

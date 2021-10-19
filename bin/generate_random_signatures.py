@@ -60,7 +60,7 @@ def plot_similarities(input_signatures, method='Cosine', savepath = './similarit
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-t", "--mutation_type", dest="mutation_type", default='',
-                      help="set mutation type (SBS, DBS, ID)")
+                      help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_option("-c", "--context", dest="context", default=96, type='int',
                       help="set SBS context (96, 192, 1536)")
     parser.add_option("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
@@ -89,8 +89,8 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (or '-t DBS', '-t ID').")
-    elif mutation_type not in ['SBS','DBS','ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
+    elif mutation_type not in ['SBS','DBS','ID','SV','CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     if mutation_type=='SBS':
         if context==96:
@@ -103,11 +103,7 @@ if __name__ == '__main__':
                                             (signature_tables_path, context), index_col=[0,1,2])
         else:
             raise ValueError("Context %i is not supported." % context)
-    elif mutation_type=='DBS':
-        output_filename = '%s/sigRandom_%s_signatures.csv' % (output_path, mutation_type)
-        reference_signatures = pd.read_csv('%s/sigProfiler_%s_signatures.csv' %
-                                            (signature_tables_path, mutation_type), index_col=0)
-    elif mutation_type=='ID':
+    else:
         output_filename = '%s/sigRandom_%s_signatures.csv' % (output_path, mutation_type)
         reference_signatures = pd.read_csv('%s/sigProfiler_%s_signatures.csv' %
                                             (signature_tables_path, mutation_type), index_col=0)

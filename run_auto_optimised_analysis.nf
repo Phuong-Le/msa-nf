@@ -268,9 +268,11 @@ process run_simulations {
 
   output:
   file("./SIM_${dataset}/WGS_SIM_${dataset}.${params.SBS_context}.csv") optional true
+  file("./SIM_${dataset}/WGS_SIM_${dataset}.${mutation_type}.csv") optional true
   file("./SIM_${dataset}/WGS_SIM_${dataset}.dinucs.csv") optional true
   file("./SIM_${dataset}/WGS_SIM_${dataset}.indels.csv") optional true
   file("./SIM_${dataset}/WGS_SIM_${dataset}.${params.SBS_context}.weights.csv") optional true
+  file("./SIM_${dataset}/WGS_SIM_${dataset}.${mutation_type}.weights.csv") optional true
   file("./SIM_${dataset}/WGS_SIM_${dataset}.dinucs.weights.csv") optional true
   file("./SIM_${dataset}/WGS_SIM_${dataset}.indels.weights.csv") optional true
   set dataset, mutation_type into simulation_outputs
@@ -309,6 +311,8 @@ process run_optimisation_NNLS {
     cp $baseDir/output_tables/SIM_${dataset}/WGS_SIM_${dataset}.dinucs.weights.csv ${params.optimisation_NNLS_output_path}/SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/
   [[ ${mutation_type} == "ID" ]] && \
     cp $baseDir/output_tables/SIM_${dataset}/WGS_SIM_${dataset}.indels.weights.csv ${params.optimisation_NNLS_output_path}/SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/
+  [[ ${mutation_type} == "SV" || ${mutation_type} == "CNV" ]] && \
+    cp $baseDir/output_tables/SIM_${dataset}/WGS_SIM_${dataset}.${mutation_type}.weights.csv ${params.optimisation_NNLS_output_path}/SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/
   python $baseDir/bin/run_NNLS.py -d SIM_${dataset} -t ${mutation_type} -p ${signature_prefix} \
                                   --optimisation_strategy ${params.optimisation_strategy} \
                                   -W ${weak_threshold} -S ${strong_threshold} \
@@ -537,6 +541,8 @@ process make_bootstrap_tables {
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.dinucs.weights.csv $baseDir/output_tables/${dataset}/
   [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "ID" ]] && \
     cp ${params.input_tables}/${dataset}/WGS_${dataset}.indels.weights.csv $baseDir/output_tables/${dataset}/
+  [[ ${dataset} == *"SIM"* ]] && [[ ${mutation_type} == "SV" || ${mutation_type} == "CNV" ]] && \
+    cp ${params.input_tables}/${dataset}/WGS_${dataset}.${mutation_type}.weights.csv $baseDir/output_tables/${dataset}/
   python $baseDir/bin/make_bootstrap_tables.py -d ${dataset} -t ${mutation_type} -p ${signature_prefix} ${abs_flag} \
                                                -c ${params.SBS_context} -S ${params.signature_tables} -l ${params.confidence_level} \
                                                -T ${params.signature_attribution_thresholds.join(' ')} \

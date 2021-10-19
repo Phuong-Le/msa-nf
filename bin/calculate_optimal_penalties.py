@@ -144,7 +144,7 @@ def calculate_optimal_penalty(sensitivity_table, specificity_table, label = '', 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                      help="set mutation type (SBS, DBS, ID)")
+                      help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
     parser.add_argument("-c", "--context", dest="context", default=96, type=int,
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (DBS, ID).")
-    elif mutation_type not in ['SBS','DBS','ID']:
+    elif mutation_type not in ['SBS','DBS','ID','SV','CNV']:
         raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
 
     metrics = ['Cosine', 'Correlation', 'L1', 'L2', 'Chebyshev', 'Jensen-Shannon']
@@ -231,6 +231,9 @@ if __name__ == '__main__':
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
     elif mutation_type=='ID':
         truth_table_filename = input_truth_path + '/WGS_%s.indels.weights.csv' % dataset
+        signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
+    else: # SV and CNV
+        truth_table_filename = input_truth_path + '/WGS_%s.%s.weights.csv' % (dataset, mutation_type)
         signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=0)
 
     # truth_table = pd.read_csv(truth_table_filename, index_col=0)

@@ -55,7 +55,18 @@ mutation_category_labels = {
     'non-clustered_del':'',
     'non-clustered_tds':'',
     'non-clustered_inv':'',
-    'non-clustered_trans':''
+    'non-clustered_trans':'',
+    #CNV
+    '0:homdel':'',
+    '1:LOH':'',
+    '2:LOH':'',
+    '3-4:LOH':'',
+    '5-8:LOH':'',
+    '9+:LOH':'',
+    '2:het':'',
+    '3-4:het':'',
+    '5-8:het':'',
+    '9+:het':'',
 }
 
 mutation_categories = {
@@ -63,7 +74,8 @@ mutation_categories = {
     'DBS':['AC>','AT>','CC>','CG>','CT>','GC>','TA>','TC>','TG>','TT>'],
     'ID':['DEL_C_1', 'DEL_T_1', 'INS_C_1', 'INS_T_1', 'DEL_repeats_2', 'DEL_repeats_3', 'DEL_repeats_4', 'DEL_repeats_5+',
     'INS_repeats_2', 'INS_repeats_3', 'INS_repeats_4', 'INS_repeats_5+', 'DEL_MH_2', 'DEL_MH_3', 'DEL_MH_4', 'DEL_MH_5+'],
-    'SV':['clustered_del', 'clustered_tds', 'clustered_inv', 'clustered_trans', 'non-clustered_del', 'non-clustered_tds', 'non-clustered_inv', 'non-clustered_trans']
+    'SV':['clustered_del', 'clustered_tds', 'clustered_inv', 'clustered_trans', 'non-clustered_del', 'non-clustered_tds', 'non-clustered_inv', 'non-clustered_trans'],
+    'CNV':['0:homdel', '1:LOH', '2:LOH', '3-4:LOH', '5-8:LOH', '9+:LOH', '2:het', '3-4:het', '5-8:het', '9+:het']
 }
 
 mutation_colours = {
@@ -71,7 +83,8 @@ mutation_colours = {
     'DBS':['skyblue','royalblue','lightgreen','green','salmon','firebrick','navajowhite','darkorange','plum','blueviolet'],
     'ID':['navajowhite','darkorange','lightgreen','green','lightcoral','coral','red','firebrick','lightskyblue','skyblue',
     'deepskyblue','royalblue','lavender','plum','mediumpurple','blueviolet'],
-    'SV':['navajowhite','darkorange','lightgreen','green','lightcoral','coral','red','firebrick']
+    'SV':['navajowhite','darkorange','lightgreen','green','lightcoral','coral','red','firebrick'],
+    'CNV':['navajowhite','darkorange','lightgreen','green','lightcoral','coral','red','firebrick','lightskyblue','skyblue'],
 }
 
 def lighten_colour(colour, amount=0.5):
@@ -312,7 +325,7 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--input_folder", dest="input_folder", default='input_mutation_tables/',
                         help="set path to datasets with input mutation tables")
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
-                        help="set mutation type (SBS, DBS, ID)")
+                        help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-c", "--context", dest="context", default=96, type=int,
                         help="set SBS context (96, 192, 288)")
     parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
@@ -357,8 +370,8 @@ if __name__ == '__main__':
     output_folder = args.output_folder + '/' + dataset_name + '/' + mutation_type + '/'
     if not mutation_type:
         parser.error("Please specify the mutation type using -t option, e.g. add '-t SBS' to the command (DBS, ID).")
-    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV" % mutation_type)
+    elif mutation_type not in ['SBS', 'DBS', 'ID', 'SV', 'CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     if args.strand_bias and mutation_type!='SBS':
         raise ValueError("Can not plot strand bias information for %s mutation type." % mutation_type)
@@ -411,8 +424,8 @@ if __name__ == '__main__':
             input_spectra = pd.read_csv('%s/%s/WGS_%s.dinucs.csv' % (input_folder, dataset_name, dataset_name), sep=None, index_col=index_col)
         elif mutation_type=='ID':
             input_spectra = pd.read_csv('%s/%s/WGS_%s.indels.csv' % (input_folder, dataset_name, dataset_name), sep=None, index_col=index_col)
-        elif mutation_type=='SV':
-            input_spectra = pd.read_csv('%s/%s/WGS_%s.SV.csv' % (input_folder, dataset_name, dataset_name), sep=None, index_col=index_col)
+        else: # SV and CNV
+            input_spectra = pd.read_csv('%s/%s/WGS_%s.%s.csv' % (input_folder, dataset_name, dataset_name, mutation_type), sep=None, index_col=index_col)
 
     if args.strand_bias:
         strand_bias_subfolder = 'TSB'
