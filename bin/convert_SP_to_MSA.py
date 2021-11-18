@@ -60,8 +60,8 @@ if __name__ == '__main__':
                         help="set dataset name to use in converted filenames")
     parser.add_argument("-t", "--mutation_types", nargs='+', dest="mutation_types", default=['SBS','DBS','ID'],
                       help="set mutation types, e.g. -t SBS DBS ID (default)")
-    parser.add_argument("-c", "--contexts", nargs='+', dest="contexts", type=int, default=[96, 288],
-                      help="set SBS contexts e.g. -c 96 288 (default). Supported contexts: 96, 192, 288")
+    parser.add_argument("-c", "--contexts", nargs='+', dest="contexts", type=int, default=[96, 288, 1536],
+                      help="set SBS contexts e.g. -c 96 288 1536 (default). Supported contexts: 96, 192, 288, 1536")
     parser.add_argument("-o", "--output_path", dest="output_path", default='./',
                         help="set output path for converted tables (default: ./)")
     # parser.add_argument("-e", "--exome", dest="exome", action="store_true",
@@ -106,11 +106,14 @@ if __name__ == '__main__':
     for mutation_type in mutation_types:
         if mutation_type=='SBS':
             for context in contexts:
-                if context==96:
+                if context == 96:
                     index_col = [0,1]
                     signatures[mutation_type + str(context)] = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, input_signatures_prefix, mutation_type), sep=',', index_col=index_col)
                 elif context in [192, 288]:
                     index_col = [0,1,2]
+                    signatures[mutation_type + str(context)] = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, input_signatures_prefix, mutation_type, context), sep=',', index_col=index_col)
+                elif context == 1536:
+                    index_col = 0
                     signatures[mutation_type + str(context)] = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, input_signatures_prefix, mutation_type, context), sep=',', index_col=index_col)
         else:
             signatures[mutation_type] = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, input_signatures_prefix, mutation_type), sep=',', index_col=0)
