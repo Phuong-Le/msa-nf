@@ -101,6 +101,10 @@ if __name__ == '__main__':
             output_filename = '%s/sigRandom_SBS_%i_signatures.csv' % (output_path, context)
             reference_signatures = pd.read_csv('%s/sigProfiler_SBS_%i_signatures.csv' %
                                             (signature_tables_path, context), index_col=[0,1,2])
+        elif context==1536:
+            output_filename = '%s/sigRandom_SBS_%i_signatures.csv' % (output_path, context)
+            reference_signatures = pd.read_csv('%s/sigProfiler_SBS_%i_signatures.csv' %
+                                            (signature_tables_path, context), index_col=0)
         else:
             raise ValueError("Context %i is not supported." % context)
     else:

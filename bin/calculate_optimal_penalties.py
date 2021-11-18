@@ -224,6 +224,8 @@ if __name__ == '__main__':
             signatures = pd.read_csv('%s/%s_%s_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type), index_col=[0, 1])
         elif context in [192, 288]:
             signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), index_col=[0, 1, 2])
+        elif context == 1536:
+            signatures = pd.read_csv('%s/%s_%s_%i_signatures.csv' % (signature_tables_path, signatures_prefix, mutation_type, context), index_col=0)
         else:
             raise ValueError("Context %i is not supported." % context)
     elif mutation_type=='DBS':
