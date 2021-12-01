@@ -94,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--mutation_type", dest="mutation_type", default='',
                         help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_argument("-c", "--context", dest="context", default=96, type=int,
-                        help="set SBS context (96, 192)")
+                        help="set SBS context (96, 192, 288, 1536)")
     parser.add_argument("-s", "--signature_path", dest="signature_tables_path", default='signature_tables/',
                         help="set path to signature tables")
     parser.add_argument("-p", "--signature_prefix", dest="signatures_prefix", default='sigProfiler',
