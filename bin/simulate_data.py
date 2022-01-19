@@ -113,6 +113,8 @@ if __name__ == '__main__':
                         help="Choose the type of noise: Poisson, Gaussian or negative_binomial (Poisson variation by default)")
     parser.add_argument("-Z", "--noise_sigma", dest="noise_sigma", default=5, type=float,
                         help="Set standard deviation (in percentage of sample mutation burden) of Gaussian noise if used (5 percent by default)")
+    parser.add_argument("--zero_inflation_threshold", dest="zero_inflation_threshold", default=0.01, type=float,
+                        help="set the relative threshold below which all simulated signature activities are set to zero (0.01 by default)")
     parser.add_argument("-r", "--random", dest="random_signatures", action="store_true",
                         help="Use randomly generated signatures instead of PCAWG reference ones")
     parser.add_argument("-N", "--number_of_random_sigs", dest="number_of_random_sigs", default=5, type=int,
@@ -259,6 +261,9 @@ if __name__ == '__main__':
         for signature in generated_signature_burdens.keys():
             if mutational_burden!=0:
                 weights[signature] = generated_signature_burdens[signature][i]/generated_mutational_burdens[i]
+                # replace signature activities of <1% with 0
+                if weights[signature] < args.zero_inflation_threshold:
+                    weights[signature] = 0
             else:
                 weights[signature] = 0
             generated_weights.loc[i,signature] = weights[signature]
