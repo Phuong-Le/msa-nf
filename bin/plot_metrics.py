@@ -165,9 +165,12 @@ if __name__ == '__main__':
         truth_and_measured_difference = pd.read_csv(input_attributions_folder + '/truth_studies/truth_and_measured_difference_' + mutation_type + '.csv', index_col=0)
         signatures_CPs = pd.read_csv(input_attributions_folder + '/truth_studies/signatures_CPs_' + mutation_type + '.csv', index_col=0)
         sensitivity_thresholds = pd.read_csv(input_attributions_folder + '/truth_studies/sensitivity_thresholds_' + mutation_type + '.csv', index_col=0)
+        stat_scores_tables = pd.read_csv(input_attributions_folder + '/truth_studies/stat_scores_tables_' + mutation_type + '.csv', index_col=0)
         stat_scores_from_CI_tables = pd.read_csv(input_attributions_folder + '/truth_studies/stat_scores_from_CI_tables_' + mutation_type + '.csv', index_col=0)
         signatures_CPs_dict = read_data_from_JSON(input_attributions_folder + '/truth_studies/signatures_CPs_dict_' + mutation_type + '.json')
         signatures_scores = read_data_from_JSON(input_attributions_folder + '/truth_studies/signatures_scores_' + mutation_type + '.json')
+        signatures_scores_from_CI = read_data_from_JSON(input_attributions_folder + '/truth_studies/signatures_scores_from_CI_' + mutation_type + '.json')
+        stat_scores_per_sig = read_data_from_JSON(input_attributions_folder + '/truth_studies/stat_scores_per_sig_' + mutation_type + '.json')
         stat_scores_from_CI_per_sig = read_data_from_JSON(input_attributions_folder + '/truth_studies/stat_scores_from_CI_per_sig_' + mutation_type + '.json')
 
     # plot sensitivity threshold vs CP plot for each sig
@@ -183,11 +186,12 @@ if __name__ == '__main__':
     if 'SIM' in dataset_name:
         make_boxplot(signatures_CPs, 'Confidence probability (%s)' % mutation_type, 'Signatures', 'CP (%)', savepath=output_folder + '/truth_studies/signature_confidence_probabilities.pdf')
         make_boxplot(sensitivity_thresholds, 'Sensitivity thresholds (%s)' % mutation_type, 'Signatures', 'Threshold (%)', ylim_zero_to_one = False, savepath=output_folder + '/truth_studies/sensitivity_thresholds.pdf')
-        # make_boxplot(stat_scores_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath=output_folder + '/sensitivity_specificity_metrics.pdf')
-        make_boxplot(stat_scores_from_CI_tables, 'Metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath=output_folder + '/truth_studies/sensitivity_specificity_from_CI_metrics.pdf')
+        make_boxplot(stat_scores_tables, 'Metrics (%s)' % mutation_type, '', 'Values', savepath=output_folder + '/truth_studies/sensitivity_specificity_metrics.pdf')
+        make_boxplot(stat_scores_from_CI_tables, 'CI-based metrics (%s)' % mutation_type, '', 'Values', savepath=output_folder + '/truth_studies/sensitivity_specificity_from_CI_metrics.pdf')
         for signature in signatures_to_consider:
-            # make_boxplot(stat_scores_per_sig[signature], 'Signature %s metrics (%s)' % (signature, mutation_type), 'Metrics', 'Values', savepath=output_folder + '/per_signature_metrics/%s_metrics.pdf' % signature)
-            make_boxplot(stat_scores_from_CI_per_sig[signature], 'Signature %s metrics (%s)' % (signature, mutation_type), 'Metrics', 'Values', savepath=output_folder + '/truth_studies/per_signature_from_CI_metrics/%s_metrics.pdf' % signature)
+            make_boxplot(stat_scores_per_sig[signature], 'Signature %s metrics (%s)' % (signature, mutation_type), '', 'Values', savepath=output_folder + '/truth_studies/per_signature_metrics/%s_metrics.pdf' % signature)
+            make_boxplot(stat_scores_from_CI_per_sig[signature], 'Signature %s CI metrics (%s)' % (signature, mutation_type), '', 'Values', savepath=output_folder + '/truth_studies/per_signature_from_CI_metrics/%s_metrics.pdf' % signature)
         for score in scores:
             make_boxplot(signatures_scores[score], '%s (%s)' % (score, mutation_type), 'Signatures', 'Values', savepath=output_folder + '/truth_studies/signature_%s.pdf' % score)
+            make_boxplot(signatures_scores_from_CI[score], 'CI-based %s (%s)' % (score, mutation_type), 'Signatures', 'Values', savepath=output_folder + '/truth_studies/signature_%s_from_CI.pdf' % score)
         make_boxplot(truth_and_measured_difference, 'Truth and measured difference (%s)' % mutation_type, '', 'Difference', ylim_zero_to_one=False, add_jitter = True, savepath=output_folder + '/truth_studies/truth_and_measured_difference.pdf')
