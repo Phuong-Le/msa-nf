@@ -36,7 +36,6 @@ params.signature_prefix = "sigProfiler" // prefix of signature files to use (e.g
 
 // simulations parameters
 params.run_only_simulations = false // set to true if only simulations are needed, these will be produced in $baseDir/output_tables folder
-params.number_of_simulated_samples = 1000 // at least 1000 is recommended
 params.add_noise = true // add noise in simulations (recommended)
 params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
 params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
@@ -92,7 +91,6 @@ prioritised_signatures_flag = (params.signatures_to_prioritise) ? "--signatures_
 test_run = ((params.dataset == ['SIM_test']) || (params.dataset == 'SIM_test')) ? true : false
 number_of_bootstrapped_samples_in_optimisation = (test_run) ? 10 : params.number_of_bootstrapped_samples_in_optimisation
 number_of_bootstrapped_samples = (test_run) ? 10 : params.number_of_bootstrapped_samples
-number_of_simulated_samples = (test_run) ? 10 : params.number_of_simulated_samples
 weak_thresholds = (test_run) ? ['0.0000', '0.0100', '0.0200'] : params.weak_thresholds
 strong_thresholds = (test_run) ? ['0.0000'] : params.strong_thresholds
 
@@ -280,7 +278,10 @@ process run_simulations {
 
   script:
   """
-  python $baseDir/bin/simulate_data.py -d SIM_${dataset} -t ${mutation_type} -c ${params.SBS_context} -n ${number_of_simulated_samples} -p ${signature_prefix} \
+  export number_of_samples=$(wc -l < $baseDir/output_tables_unoptimised/${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv)
+  export number_of_simulations=$(python -c "from math import ceil; print(1000*ceil($number_of_samples/100.0))")
+  [[ ${test_run} ]] && export number_of_simulations=10
+  python $baseDir/bin/simulate_data.py -d SIM_${dataset} -t ${mutation_type} -c ${params.SBS_context} -n ${number_of_simulations} -p ${signature_prefix} \
                                   -B ${noise_flag} --noise_type ${params.noise_type} -Z ${params.noise_stdev} \
                                   -i $baseDir/output_tables_unoptimised/${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv -s ${params.signature_tables} -o "./"
   """
