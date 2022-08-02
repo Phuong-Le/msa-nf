@@ -1,11 +1,13 @@
 import argparse
 import os
+import warnings
 import random
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 from common_methods import make_folder_if_not_exists
+from math import ceil
 
 # signatures to generate if not bootstrapping and input signature activities table (-B option)
 signatures_to_generate = {
@@ -105,8 +107,8 @@ if __name__ == '__main__':
                         help="set the dataset name ('SIM' by default)")
     parser.add_argument("-v", "--verbose", dest="verbose", action="store_true",
                         help="verbosity flag for debugging (lots of output)")
-    parser.add_argument("-n", "--number_of_samples", dest="number_of_samples", default=100, type=int,
-                        help="set the number of samples to generate (100 by default)")
+    parser.add_argument("-n", "--number_of_samples", dest="number_of_samples", default=-1, type=int,
+                        help="set the number of samples to generate (-1 by default means 10 times number of input samples but at least 1000)")
     parser.add_argument("-z", "--noise", dest="add_noise", action="store_true",
                         help="Add noise of type specified by noise_type parameter")
     parser.add_argument("--noise_type", dest="noise_type", default='poisson',
@@ -136,6 +138,17 @@ if __name__ == '__main__':
     number_of_samples = args.number_of_samples
     random_signatures = args.random_signatures
     number_of_random_sigs = args.number_of_random_sigs
+
+    # calculate number of simulated samples by default
+    if number_of_samples==-1:
+        if not args.input_table:
+            warnings.warn("The input signature activities table not provided with -i option. Attempting to run 1000 simulations.")
+            number_of_samples = 1000
+        else:
+            # calculating the number of samples in the input signature activities table
+            number_of_input_lines = sum(1 for line in open(args.input_table))
+            # rounded factor of ten but not less than 1000
+            number_of_samples = 1000*ceil(number_of_input_lines/100.0)
 
     make_folder_if_not_exists(output_path)
 
