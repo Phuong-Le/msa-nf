@@ -36,7 +36,7 @@ params.signature_prefix = "sigProfiler" // prefix of signature files to use (e.g
 
 // simulations parameters
 params.run_only_simulations = false // set to true if only simulations are needed, these will be produced in $baseDir/output_tables folder
-params.number_of_simulated_samples = 1000 // at least 1000 is recommended
+params.number_of_simulated_samples = -1 // number of simulations to run (-1 means automatically apply a rounded factor of ten but not less than 1000)
 params.add_noise = true // add noise in simulations (recommended)
 params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
 params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)

@@ -203,8 +203,10 @@ if __name__ == '__main__':
         signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
         truth_and_measured_difference = pd.DataFrame(0, index=central_attribution_table.index, columns=['Truth - mean', 'Truth - median', 'Truth - NNLS'], dtype=float)
         signatures_scores = {}
+        signatures_scores_from_CI = {}
         for score in scores:
             signatures_scores[score] = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
+            signatures_scores_from_CI[score] = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
 
     print('Initialisation done.')
     print('Elapsed time:', datetime.now() - start_time)
@@ -326,12 +328,6 @@ if __name__ == '__main__':
             # for signature in signatures_to_consider:
             #     stat_scores_per_sig[signature].loc[sample, :] = calculate_stat_scores([signature], attributions_per_sample_dict[sample], truth_table)
 
-    # calculate simple metrics without bootstrap variations
-    if 'SIM' in dataset_name:
-        stat_scores_tables.loc[0, :] = calculate_stat_scores(signatures, central_attribution_table, truth_attribution_table)
-        for signature in signatures_to_consider:
-            stat_scores_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], central_attribution_table, truth_attribution_table)
-
     signatures_prevalences = signatures_prevalences/number_of_b_samples
 
     print('Signature prevalences calculated.')
@@ -339,11 +335,14 @@ if __name__ == '__main__':
 
     # calculate per-signature statistical scores
     if 'SIM' in dataset_name:
+        stat_scores_tables.loc[0, :] = calculate_stat_scores(signatures, central_attribution_table, truth_attribution_table)
         stat_scores_from_CI_tables.loc[0, :] = calculate_stat_scores(signatures, lower_CI_attributions, truth_attribution_table)
         for signature in signatures_to_consider:
+            stat_scores_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], central_attribution_table, truth_attribution_table)
             stat_scores_from_CI_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], lower_CI_attributions, truth_attribution_table)
             for score in scores:
-                signatures_scores[score].loc[0, signature] = stat_scores_from_CI_per_sig[signature].loc[0, score]
+                signatures_scores[score].loc[0, signature] = stat_scores_per_sig[signature].loc[0, score]
+                signatures_scores_from_CI[score].loc[0, signature] = stat_scores_from_CI_per_sig[signature].loc[0, score]
         print('Signature stat scores calculated.')
         print('Elapsed time:', datetime.now() - start_time)
 
@@ -355,6 +354,7 @@ if __name__ == '__main__':
         stat_scores_from_CI_tables.to_csv(output_folder + '/truth_studies/stat_scores_from_CI_tables_' + mutation_type + '.csv')
         stat_scores_tables.to_csv(output_folder + '/truth_studies/stat_scores_tables_' + mutation_type + '.csv')
         write_data_to_JSON(signatures_CPs_dict, output_folder + '/truth_studies/signatures_CPs_dict_' + mutation_type + '.json')
+        write_data_to_JSON(signatures_scores_from_CI, output_folder + '/truth_studies/signatures_scores_from_CI_' + mutation_type + '.json')
         write_data_to_JSON(signatures_scores, output_folder + '/truth_studies/signatures_scores_' + mutation_type + '.json')
         write_data_to_JSON(stat_scores_from_CI_per_sig, output_folder + '/truth_studies/stat_scores_from_CI_per_sig_' + mutation_type + '.json')
         write_data_to_JSON(stat_scores_per_sig, output_folder + '/truth_studies/stat_scores_per_sig_' + mutation_type + '.json')
