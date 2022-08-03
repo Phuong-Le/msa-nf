@@ -1,5 +1,6 @@
 from optparse import OptionParser
 import os, copy
+import warnings
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,7 +41,7 @@ def make_efficiency_comparison_plot(input_data, title, xlabel, ylabel, savepath 
         metrics = next(iter(input_data.values())).columns.to_list()
 
     f, axes = plt.subplots(1, len(metrics), sharey=True, figsize=(len(metrics)*1.3, 4))
-    f.suptitle(title, fontsize=12, y=0.999)
+    f.suptitle(title, fontsize=12)
     axes[0].set_xlabel(xlabel, size = 12)
     axes[0].set_ylabel(ylabel, size = 12)
 
@@ -60,9 +61,18 @@ def make_efficiency_comparison_plot(input_data, title, xlabel, ylabel, savepath 
             else:
                 mean = data_to_plot.mean()
                 err = data_to_plot.std()
-            if 'unoptimised' in method:
+            if 'MSA_SP' in method:
+                marker = "o"
+                linestyle = '-'
+            elif 'MSA' in method:
+                marker = "*"
+                linestyle = '-'
+            elif 'SP' in method:
+                marker = "^"
+                linestyle = '-'
+            elif 'SA' in method:
                 marker = "v"
-                linestyle = '--'
+                linestyle = '-'
             else:
                 marker = "o"
                 linestyle = '-'
@@ -76,7 +86,9 @@ def make_efficiency_comparison_plot(input_data, title, xlabel, ylabel, savepath 
 
 
     handles, labels = axes[0].get_legend_handles_labels()
-    f.legend(handles, methods, loc='lower center', framealpha=0.0, borderaxespad=0.1, fancybox=False, shadow=False, ncol=2)
+    method_labels = [method.replace('SP_opt','SP') for method in methods]
+    method_labels = [method.replace('96_','') for method in methods]
+    f.legend(handles, method_labels, loc='lower center', framealpha=0.0, borderaxespad=0.1, fancybox=False, shadow=False, ncol=2)
 
     plt.tight_layout()
     f.subplots_adjust(bottom=0.06 + 0.03*len(methods))
@@ -86,7 +98,7 @@ def make_efficiency_comparison_plot(input_data, title, xlabel, ylabel, savepath 
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-t", "--mutation_type", dest="mutation_type", default='SBS',
-                      help="set mutation type (SBS, DBS, ID)")
+                      help="set mutation type (SBS, DBS, ID, SV, CNV)")
     parser.add_option("-d", "--dataset", dest="dataset_name", default='SIM',
                       help="set the dataset name ('SIM' by default)")
     parser.add_option("-i", "--input_reco_path", dest="input_reco_path", default='output_opt_check/',
@@ -121,11 +133,11 @@ if __name__ == '__main__':
         parser.error("Please verify that provided methods and contexts (-m, -c options) are compatible.")
     if mutation_type!='SBS' and set(methods)!=set(['optimised','unoptimised']):
         # override context:
-        print("Warning: overriding methods with ['unoptimised','optimised'] for %s mutation type" % mutation_type)
+        warnings.warn("Warning: overriding methods with ['unoptimised','optimised'] for %s mutation type" % mutation_type)
         methods = ['unoptimised','optimised']
 
-    if mutation_type not in ['SBS','DBS','ID']:
-        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID" % mutation_type)
+    if mutation_type not in ['SBS','DBS','ID','SV','CNV']:
+        raise ValueError("Unknown mutation type: %s. Known types: SBS, DBS, ID, SV, CNV" % mutation_type)
 
     output_path = options.output_path
     number_of_samples = options.number_of_samples
@@ -147,6 +159,9 @@ if __name__ == '__main__':
     elif mutation_type=='ID':
         reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_ID_weights_table.csv' % dataset for method in methods]
         truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.indels.weights.csv'] * len(methods)
+    else: # SV and CNV
+        reco_table_filenames = [input_reco_path + '/' + dataset + '_' + method + '/output_%s_%s_weights_table.csv' % (dataset, mutation_type) for method in methods]
+        truth_table_filenames = [input_truth_path + '/WGS_' + dataset + '.' + mutation_type + '.weights.csv'] * len(methods)
 
     # add contexts to method names
     if mutation_type=='SBS':
@@ -154,6 +169,7 @@ if __name__ == '__main__':
 
     similarity_tables = {}
     stat_scores_tables = pd.DataFrame(index = methods, columns = scores)
+    stat_scores_per_sig = {}
     for method, reco_table_filename, truth_table_filename in zip(methods,reco_table_filenames,truth_table_filenames):
         reco_table = pd.read_csv(reco_table_filename, index_col=0)
         truth_table = pd.read_csv(truth_table_filename, index_col=0)
@@ -174,6 +190,11 @@ if __name__ == '__main__':
         truth_table = truth_table.reindex(reco_table.columns, axis=1)
         all_signatures = list(truth_table.columns)
 
+        # initialise stat scores dataframes per signature
+        for signature in all_signatures:
+            if not signature in stat_scores_per_sig.keys():
+                stat_scores_per_sig[signature] = pd.DataFrame(index = methods, columns=scores, dtype=float)
+
         if set(reco_table.columns.to_list()) != set(truth_table.columns.to_list()):
             # print(reco_table.columns.to_list())
             # print(truth_table.columns.to_list())
@@ -190,24 +211,31 @@ if __name__ == '__main__':
         for metric in metrics:
             for i in range(number_of_samples):
                 reco_sample = reco_table.iloc[i].values
+                if np.isnan(reco_sample).all():
+                    warnings.warn('Warning: sample %s is full of nans, setting to zeros' % reco_table.index.values[i])
+                    reco_table.iloc[i] = [0 for i in reco_table.iloc[i].values]
                 truth_sample = truth_table.iloc[i].values
                 if not reco_sample.any() and not truth_sample.any():
                     # similarity (e.g. cosine or JS) is undefined for zero samples, so skipping
                     continue
-                similarity_tables[method].loc[i, metric] = calculate_similarity(reco_sample, truth_sample, metric)
+                similarity_tables[method].loc[i, metric] = calculate_similarity(reco_sample, truth_sample, metric, normalise=True)
 
         # calculate stat scores
         print('Method:', method)
         stat_scores_tables.loc[method, :] = calculate_stat_scores(all_signatures, reco_table, truth_table, number_of_samples)
+        for signature in all_signatures:
+            stat_scores_per_sig[signature].loc[method, :] = calculate_stat_scores([signature], reco_table, truth_table, number_of_samples)
 
         boxplot_savepath = output_path + '/box_plots/' + dataset + '_' + mutation_type + '_' + method + '.pdf'
         if options.suffix:
             boxplot_savepath = boxplot_savepath.replace('box_plots','box_plots_%s' % options.suffix)
-        make_boxplot(similarity_tables[method], 'Signature attribution efficiency (%s)' % method,
+        make_boxplot(similarity_tables[method], 'Signature attribution efficiency (%s)' % method.replace('SP_opt','SP'),
                         'Metrics', 'Similarities', savepath = boxplot_savepath)
 
-    comparison_savepath = output_path + '/' + dataset + '_' + mutation_type + '_comparison_efficiencies.pdf'
+    comparison_savepath = output_path + '/' + dataset + '_' + mutation_type + '_comparison_similarities.pdf'
     if options.suffix:
         comparison_savepath = comparison_savepath.replace('.pdf','_%s.pdf' % options.suffix)
-    make_efficiency_comparison_plot(similarity_tables, 'Signature attribution efficiencies (%s)' % mutation_type, 'Metrics', 'Similarities', savepath = comparison_savepath)
-    make_efficiency_comparison_plot(stat_scores_tables, 'Further metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath = comparison_savepath.replace('efficiencies.pdf','further_metrics.pdf'))
+    make_efficiency_comparison_plot(similarity_tables, 'Signature attribution similarities (%s)' % mutation_type, 'Metrics', 'Similarities', savepath = comparison_savepath)
+    make_efficiency_comparison_plot(stat_scores_tables, 'Signature attribution metrics (%s)' % mutation_type, 'Metrics', 'Values', savepath = comparison_savepath.replace('similarities.pdf','overall_metrics.pdf'))
+    for signature in all_signatures:
+        make_efficiency_comparison_plot(stat_scores_per_sig[signature], 'Signature %s metrics' % (signature), 'Metrics', 'Values', savepath = comparison_savepath.replace('similarities.pdf', signature + '_metrics.pdf'))
