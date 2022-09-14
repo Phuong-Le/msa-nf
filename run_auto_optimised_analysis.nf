@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-// Copyright (C) 2020 Sergey Senkin
+// Copyright (C) 2022 Sergey Senkin
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -334,8 +334,8 @@ process run_optimisation_NNLS_bootstrapping {
   output:
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_mutations_table.csv")
   file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_stat_info.csv")
-  file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_weights_table.csv") into optimisation_bootstrap_output_tables
-  set dataset, mutation_type into optimisation_bootstrap_outputs
+  file("./SIM_${dataset}_${params.SBS_context}_NNLS_${weak_threshold}_${strong_threshold}/bootstrap_output/output_SIM_${dataset}_${mutation_type}_${weak_threshold}_${strong_threshold}_${i}_weights_table.csv")
+  val i into optimisation_bootstrap_outputs
 
   when:
   !params.run_only_simulations
@@ -360,7 +360,7 @@ process make_optimisation_bootstrap_tables {
 
   input:
   set dataset, mutation_type from optimisation_attribution_for_tables
-  file bootstrap_weights from optimisation_bootstrap_output_tables.collect()
+  val i from optimisation_bootstrap_outputs.collect()
   each weak_threshold from weak_thresholds
   each strong_threshold from strong_thresholds
 
@@ -496,7 +496,8 @@ process run_NNLS_bootstrapping {
   output:
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_mutations_table.csv")
   file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_stat_info.csv")
-  file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv") into bootstrap_output_tables
+  file("./${dataset}/bootstrap_output/output_${dataset}_${mutation_type}_${i}_weights_table.csv")
+  val i into bootstrap_outputs
 
   when:
   !params.run_only_optimisation
@@ -520,7 +521,7 @@ process make_bootstrap_tables {
 
   input:
   set dataset, mutation_type from attribution_for_tables
-  file bootstrap_weights from bootstrap_output_tables.collect()
+  val i from bootstrap_outputs.collect()
 
   output:
   file("./${dataset}/CIs_${dataset}_${mutation_type}_bootstrap_output_${suffix}.csv") into final_outputs_post_bootstrap

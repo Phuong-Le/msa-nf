@@ -25,7 +25,7 @@ def make_folder_if_not_exists(folder):
         try:
             os.makedirs(folder)
         except:
-            warnings.warn("Could not create a folder ", folder)
+            warnings.warn("Could not create a folder %s" % folder)
 
 def merge_plots(input_plots_filenames, merged_plot_filename, merge_tool = 'pdfunite'):
     if is_tool(merge_tool):
