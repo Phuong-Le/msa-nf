@@ -666,8 +666,10 @@ process move_bootstrap_outputs {
   shell:
   """
   cp -r ${output_path}/${dataset} .
-  cp -r ${params.optimisation_NNLS_output_path} ./outputs_optimisation
-  tar cvfh MSA_output_${dataset}.tar.gz ${dataset} ./outputs_optimisation
+  mkdir outputs_optimisation
+  cp -r ${params.optimisation_NNLS_output_path}/SIM_${dataset} outputs_optimisation/
+  cp -r ${params.optimisation_NNLS_output_path}/SIM_${dataset}_${params.SBS_context}* outputs_optimisation
+  tar cvfh MSA_output_${dataset}.tar.gz ${dataset} outputs_optimisation
   rm -rf ${dataset}
   rm -rf outputs_optimisation
   """
