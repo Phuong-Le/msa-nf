@@ -153,6 +153,25 @@ if (params.SP_extractor_output_path) {
                                              -i ${input_path} -s ${params.signature_tables} -o "./"
     """
   }
+  if (!params.SP_matrix_generator_output_path) {
+    process convert_extractor_input_matrices {
+      publishDir "${params.input_tables}", mode: 'move', overwrite: true
+
+      input:
+      each dataset from params.dataset
+      path input_path from params.SP_extractor_output_path
+
+      output:
+      file '*/*.csv' into converted_SP_to_MSA_for_spectra
+      file '*/*.csv' into converted_SP_to_MSA_for_unoptimised_NNLS
+
+      script:
+      """
+      python $baseDir/bin/convert_SP_to_MSA.py -E -d ${dataset} -t ${params.mutation_types.join(' ')} \
+                                              -i ${input_path} -s ${params.signature_tables} -o "./"
+      """
+    }
+  }
 } else {
   // placeholder channels for execution from existing input matrices
   signatures_for_spectra = Channel.value(1)
@@ -177,7 +196,7 @@ if (params.SP_matrix_generator_output_path) {
                                              -i ${input_path} -s ${params.signature_tables} -o "./"
     """
   }
-} else {
+} else if (!params.SP_extractor_output_path) {
   // placeholder channels for execution from existing input matrices
   converted_SP_to_MSA_for_spectra = Channel.value(1)
   converted_SP_to_MSA_for_unoptimised_NNLS = Channel.value(1)
