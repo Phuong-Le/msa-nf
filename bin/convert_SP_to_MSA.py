@@ -72,6 +72,8 @@ if __name__ == '__main__':
                       help="set prefix in signature filenames to extract indexes (sigProfiler by default)")
     parser.add_argument("-n", "--reindexed_signatures_prefix", dest="reindexed_signatures_prefix", default='sigProfilerNew',
                       help="set prefix for reindexed signatures filenames (sigProfilerNew by default)")
+    parser.add_argument("-E", "--use_extractor_for_mutation_tables", dest="use_extractor_for_mutation_tables", action="store_true",
+                      help="use Samples.txt file from SigProfiler extractor output, rather than matrix generator output")
 
     options = parser.parse_args()
     input_path = options.input_path
@@ -166,7 +168,10 @@ if __name__ == '__main__':
         # reindex mutation tables
         make_folder_if_not_exists(output_path + '/' + dataset_name)
         for mutation_type in mutation_types:
-            input_files = glob.glob(input_path + '/%s/*%s*' % (mutation_type, mutation_type))
+            if options.use_extractor_for_mutation_tables:
+                input_files = glob.glob(input_path + '/%s*/Samples.txt' % mutation_type)
+            else: # assume matrix generator output
+                input_files = glob.glob(input_path + '/%s/*%s*' % (mutation_type, mutation_type))
             if not input_files:
                 raise ValueError("Can't find any files of mutation type %s in input path %s" % (mutation_type, input_path) )
             for file in input_files:

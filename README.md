@@ -15,17 +15,27 @@ Once you have installed Nextflow, run the test job locally or on your favourite 
 nextflow run https://gitlab.com/s.senkin/MSA -profile docker
 ```
 
-If you don't have [docker](https://www.docker.com/) installed, you can also use [conda](https://conda.io) or [singularity](https://sylabs.io/singularity/) profiles.
-The pipeline should run everything and produce all the results automatically. You can also retrieve the code ([see below](https://gitlab.com/s.senkin/MSA#getting-started)) in order to adjust all the inputs and parameters. In the [run_auto_optimised_analysis.nf](run_auto_optimised_analysis.nf) file various parameters can be specified.
+If you don't have [docker](https://www.docker.com/) installed, you can also use [conda](https://conda.io) or [singularity](https://sylabs.io/singularity/) profiles (docker and singularity are recommended).
+
+The pipeline should run and produce all the results automatically. You can also retrieve the code ([see below](https://gitlab.com/s.senkin/MSA#getting-started)) in order to adjust all the inputs and parameters. In the [run_auto_optimised_analysis.nf](run_auto_optimised_analysis.nf) file various parameters can be specified.
 
 ## Running on SigProfiler output
 
 MSA natively supports [SigProfilerExtractor](https://github.com/AlexandrovLab/SigProfilerExtractor) and [SigProfilerMatrixGenerator](https://github.com/AlexandrovLab/SigProfilerMatrixGenerator) outputs.
 
+The simplest way to run is as follows:
+
 ```
 nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test \
-                              --SP_matrix_generator_output_path /full/path/to/SP_ME/ \
-                              --SP_extractor_output_path /full/path/to/SP/
+                              --SP_extractor_output_path /full/path/to/SP_extractor_output/
+```
+
+If [SigProfilerMatrixGenerator](https://github.com/AlexandrovLab/SigProfilerMatrixGenerator) output is provided, it will take priority over the [SigProfilerExtractor](https://github.com/AlexandrovLab/SigProfilerExtractor) one for input mutation matrices:
+
+```
+nextflow run https://gitlab.com/s.senkin/MSA -profile docker --dataset SP_test \
+                              --SP_matrix_generator_output_path /full/path/to/SP_matrix_generator_output/ \
+                              --SP_extractor_output_path /full/path/to/SP_extractor_output/
 ```
 
 ## Options
