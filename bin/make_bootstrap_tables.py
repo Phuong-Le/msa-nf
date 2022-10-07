@@ -7,7 +7,7 @@ import copy
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from common_methods import make_folder_if_not_exists, write_data_to_JSON, calculate_confidence_interval, calculate_stat_scores
+from common_methods import make_folder_if_not_exists, write_data_to_JSON, calculate_confidence_interval, calculate_stat_scores, calculate_sensitivity_CI, calculate_specificity_CI
 
 def calculate_sensitivity_thresholds(signatures_CPs_dict, signatures_to_consider, signature_attribution_thresholds):
     global confidence_level
@@ -194,11 +194,23 @@ if __name__ == '__main__':
         scores = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'F1', 'MCC']
         stat_scores_per_sig = {}
         stat_scores_from_CI_per_sig = {}
+        sensitivity_CI_per_sig = {}
+        sensitivity_CI_from_CI_per_sig = {}
+        specificity_CI_per_sig = {}
+        specificity_CI_from_CI_per_sig = {}
         for signature in signatures_to_consider:
             stat_scores_per_sig[signature] = pd.DataFrame(columns=scores, dtype=float)
             stat_scores_from_CI_per_sig[signature] = pd.DataFrame(columns=scores, dtype=float)
+            sensitivity_CI_per_sig[signature] = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+            sensitivity_CI_from_CI_per_sig[signature] = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+            specificity_CI_per_sig[signature] = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+            specificity_CI_from_CI_per_sig[signature] = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
         stat_scores_tables = pd.DataFrame(columns=scores, dtype=float)
         stat_scores_from_CI_tables = pd.DataFrame(columns=scores, dtype=float)
+        sensitivity_CI_tables = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+        specificity_CI_tables = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+        sensitivity_CI_from_CI_tables = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
+        specificity_CI_from_CI_tables = pd.DataFrame(columns=['lower_CL','upper_CL'], dtype=float)
         lower_CI_attributions = pd.DataFrame(index=central_attribution_table.index, columns=signatures_to_consider, dtype=float)
         signatures_CPs = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
         truth_and_measured_difference = pd.DataFrame(0, index=central_attribution_table.index, columns=['Truth - mean', 'Truth - median', 'Truth - NNLS'], dtype=float)
@@ -337,9 +349,17 @@ if __name__ == '__main__':
     if 'SIM' in dataset_name:
         stat_scores_tables.loc[0, :] = calculate_stat_scores(signatures, central_attribution_table, truth_attribution_table)
         stat_scores_from_CI_tables.loc[0, :] = calculate_stat_scores(signatures, lower_CI_attributions, truth_attribution_table)
+        sensitivity_CI_tables.loc[0, :] = calculate_sensitivity_CI(signatures, central_attribution_table, truth_attribution_table)
+        sensitivity_CI_from_CI_tables.loc[0, :] = calculate_sensitivity_CI(signatures, lower_CI_attributions, truth_attribution_table)
+        specificity_CI_tables.loc[0, :] = calculate_specificity_CI(signatures, central_attribution_table, truth_attribution_table)
+        specificity_CI_from_CI_tables.loc[0, :] = calculate_specificity_CI(signatures, lower_CI_attributions, truth_attribution_table)
         for signature in signatures_to_consider:
             stat_scores_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], central_attribution_table, truth_attribution_table)
             stat_scores_from_CI_per_sig[signature].loc[0, :] = calculate_stat_scores([signature], lower_CI_attributions, truth_attribution_table)
+            sensitivity_CI_per_sig[signature].loc[0, :] = calculate_sensitivity_CI([signature], central_attribution_table, truth_attribution_table)
+            sensitivity_CI_from_CI_per_sig[signature].loc[0, :] = calculate_sensitivity_CI([signature], lower_CI_attributions, truth_attribution_table)
+            specificity_CI_per_sig[signature].loc[0, :] = calculate_specificity_CI([signature], central_attribution_table, truth_attribution_table)
+            specificity_CI_from_CI_per_sig[signature].loc[0, :] = calculate_specificity_CI([signature], lower_CI_attributions, truth_attribution_table)
             for score in scores:
                 signatures_scores[score].loc[0, signature] = stat_scores_per_sig[signature].loc[0, score]
                 signatures_scores_from_CI[score].loc[0, signature] = stat_scores_from_CI_per_sig[signature].loc[0, score]
@@ -353,11 +373,19 @@ if __name__ == '__main__':
         sensitivity_thresholds.to_csv(output_folder + '/truth_studies/sensitivity_thresholds_' + mutation_type + '.csv')
         stat_scores_from_CI_tables.to_csv(output_folder + '/truth_studies/stat_scores_from_CI_tables_' + mutation_type + '.csv')
         stat_scores_tables.to_csv(output_folder + '/truth_studies/stat_scores_tables_' + mutation_type + '.csv')
+        sensitivity_CI_from_CI_tables.to_csv(output_folder + '/truth_studies/sensitivity_CI_from_CI_tables_' + mutation_type + '.csv')
+        sensitivity_CI_tables.to_csv(output_folder + '/truth_studies/sensitivity_CI_tables_' + mutation_type + '.csv')
+        specificity_CI_from_CI_tables.to_csv(output_folder + '/truth_studies/specificity_CI_from_CI_tables_' + mutation_type + '.csv')
+        specificity_CI_tables.to_csv(output_folder + '/truth_studies/specificity_CI_tables_' + mutation_type + '.csv')
         write_data_to_JSON(signatures_CPs_dict, output_folder + '/truth_studies/signatures_CPs_dict_' + mutation_type + '.json')
         write_data_to_JSON(signatures_scores_from_CI, output_folder + '/truth_studies/signatures_scores_from_CI_' + mutation_type + '.json')
         write_data_to_JSON(signatures_scores, output_folder + '/truth_studies/signatures_scores_' + mutation_type + '.json')
         write_data_to_JSON(stat_scores_from_CI_per_sig, output_folder + '/truth_studies/stat_scores_from_CI_per_sig_' + mutation_type + '.json')
         write_data_to_JSON(stat_scores_per_sig, output_folder + '/truth_studies/stat_scores_per_sig_' + mutation_type + '.json')
+        write_data_to_JSON(sensitivity_CI_from_CI_per_sig, output_folder + '/truth_studies/sensitivity_CI_from_CI_per_sig_' + mutation_type + '.json')
+        write_data_to_JSON(sensitivity_CI_per_sig, output_folder + '/truth_studies/sensitivity_CI_per_sig_' + mutation_type + '.json')
+        write_data_to_JSON(specificity_CI_from_CI_per_sig, output_folder + '/truth_studies/specificity_CI_from_CI_per_sig_' + mutation_type + '.json')
+        write_data_to_JSON(specificity_CI_per_sig, output_folder + '/truth_studies/specificity_CI_per_sig_' + mutation_type + '.json')
         print('Truth studies outputs written.')
         print('Elapsed time:', datetime.now() - start_time)
 
