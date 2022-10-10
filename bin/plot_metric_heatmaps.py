@@ -27,11 +27,11 @@ def make_lineplot(input_dataframe, xlabel, ylabel, title='', savepath="./lineplo
         elif 'Sensitivity' in column and 'Sensitivity_CI' in input_dataframe.columns:
             errorbars = np.transpose(np.array([literal_eval(CI) for CI in input_dataframe['Sensitivity_CI'].str.replace('nan', '0').to_numpy()]))
             errorbars = np.abs(errorbars-np.array(input_dataframe[column])[None, :])
-            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, label=column)
+            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, zorder=10, label=column)
         elif 'Specificity' in column and 'Specificity_CI' in input_dataframe.columns:
             errorbars = np.transpose(np.array([literal_eval(CI) for CI in input_dataframe['Specificity_CI'].str.replace('nan', '0').to_numpy()]))
             errorbars = np.abs(errorbars-np.array(input_dataframe[column])[None, :])
-            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, label=column)
+            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, zorder=11, label=column)
         else:
             plt.errorbar(input_dataframe.index, input_dataframe[column], 0, fmt='--o', label=column)
 
