@@ -40,6 +40,7 @@ params.number_of_simulated_samples = -1 // number of simulations to run (-1 mean
 params.add_noise = true // add noise in simulations (recommended)
 params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
 params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
+params.zero_inflation_threshold = 0.05 // set the relative threshold below which all simulated signature activities are set to zero (0.01 by default)
 
 // optimisation flag and parameters
 params.run_only_optimisation = false // set to true if only optimisation is required, without final attributions
@@ -300,7 +301,7 @@ process run_simulations {
   script:
   """
   python $baseDir/bin/simulate_data.py -d SIM_${dataset} -t ${mutation_type} -c ${params.SBS_context} -n ${number_of_simulated_samples} -p ${signature_prefix} \
-                                  -B ${noise_flag} --noise_type ${params.noise_type} -Z ${params.noise_stdev} \
+                                  -B ${noise_flag} --noise_type ${params.noise_type} -Z ${params.noise_stdev} --zero_inflation_threshold ${params.zero_inflation_threshold} \
                                   -i $baseDir/output_tables_unoptimised/${dataset}/output_${dataset}_${mutation_type}_mutations_table.csv -s ${params.signature_tables} -o "./"
   """
 }
