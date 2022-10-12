@@ -217,8 +217,8 @@ if __name__ == '__main__':
         signatures_scores = {}
         signatures_scores_from_CI = {}
         for score in scores:
-            signatures_scores[score] = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
-            signatures_scores_from_CI[score] = pd.DataFrame(index=central_attribution_table.index, columns=acting_signatures, dtype=float)
+            signatures_scores[score] = pd.DataFrame(columns=acting_signatures, dtype=float)
+            signatures_scores_from_CI[score] = pd.DataFrame(columns=acting_signatures, dtype=float)
 
     print('Initialisation done.')
     print('Elapsed time:', datetime.now() - start_time)
