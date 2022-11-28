@@ -7,6 +7,7 @@ import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt
 from common_methods import make_folder_if_not_exists, read_data_from_JSON
+from ast import literal_eval
 matplotlib.use("agg")
 
 def make_lineplot(input_dataframe, xlabel, ylabel, title='', savepath="./lineplot.pdf"):
@@ -21,8 +22,18 @@ def make_lineplot(input_dataframe, xlabel, ylabel, title='', savepath="./lineplo
     ax.tick_params(axis='x', rotation=90)
 
     for column in input_dataframe.columns:
-        plt.scatter(input_dataframe.index, input_dataframe[column])
-        plt.plot(input_dataframe.index, input_dataframe[column], linestyle='--', label=column)
+        if '_CI' in column:
+            continue
+        elif 'Sensitivity' in column and 'Sensitivity_CI' in input_dataframe.columns:
+            errorbars = np.transpose(np.array([literal_eval(CI) for CI in input_dataframe['Sensitivity_CI'].str.replace('nan', '0').to_numpy()]))
+            errorbars = np.abs(errorbars-np.array(input_dataframe[column])[None, :])
+            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, zorder=10, label=column)
+        elif 'Specificity' in column and 'Specificity_CI' in input_dataframe.columns:
+            errorbars = np.transpose(np.array([literal_eval(CI) for CI in input_dataframe['Specificity_CI'].str.replace('nan', '0').to_numpy()]))
+            errorbars = np.abs(errorbars-np.array(input_dataframe[column])[None, :])
+            plt.errorbar(input_dataframe.index, input_dataframe[column], errorbars, fmt='--o', capsize=1, zorder=11, label=column)
+        else:
+            plt.errorbar(input_dataframe.index, input_dataframe[column], 0, fmt='--o', label=column)
 
     # Add a grid to the plot
     ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
@@ -175,9 +186,10 @@ if __name__ == '__main__':
     # read data from files
     sensitivity_table = pd.read_csv(input_path + '/sensitivity_table.csv', index_col=0)
     specificity_table = pd.read_csv(input_path + '/specificity_table.csv', index_col=0)
+    sensitivity_CI_table = pd.read_csv(input_path + '/sensitivity_CI_table.csv', index_col=0)
+    specificity_CI_table = pd.read_csv(input_path + '/specificity_CI_table.csv', index_col=0)
     precision_table = pd.read_csv(input_path + '/precision_table.csv', index_col=0)
     accuracy_table = pd.read_csv(input_path + '/accuracy_table.csv', index_col=0)
-    F1_table = pd.read_csv(input_path + '/F1_table.csv', index_col=0)
     MCC_table = pd.read_csv(input_path + '/MCC_table.csv', index_col=0)
     rss_table = pd.read_csv(input_path + '/rss_table.csv', index_col=0)
     chi2_table = pd.read_csv(input_path + '/chi2_table.csv', index_col=0)
@@ -186,18 +198,24 @@ if __name__ == '__main__':
 
     sensitivity_tables_per_sig = read_data_from_JSON(input_path + '/sensitivity_tables_per_sig.json')
     specificity_tables_per_sig = read_data_from_JSON(input_path + '/specificity_tables_per_sig.json')
+    sensitivity_CI_tables_per_sig = read_data_from_JSON(input_path + '/sensitivity_CI_tables_per_sig.json')
+    specificity_CI_tables_per_sig = read_data_from_JSON(input_path + '/specificity_CI_tables_per_sig.json')
     precision_tables_per_sig = read_data_from_JSON(input_path + '/precision_tables_per_sig.json')
     accuracy_tables_per_sig = read_data_from_JSON(input_path + '/accuracy_tables_per_sig.json')
     MCC_tables_per_sig = read_data_from_JSON(input_path + '/MCC_tables_per_sig.json')
 
     sensitivity_table_from_CI = pd.read_csv(input_path + '/sensitivity_table_from_CI.csv', index_col=0)
     specificity_table_from_CI = pd.read_csv(input_path + '/specificity_table_from_CI.csv', index_col=0)
+    sensitivity_CI_table_from_CI = pd.read_csv(input_path + '/sensitivity_CI_table_from_CI.csv', index_col=0)
+    specificity_CI_table_from_CI = pd.read_csv(input_path + '/specificity_CI_table_from_CI.csv', index_col=0)
     precision_table_from_CI = pd.read_csv(input_path + '/precision_table_from_CI.csv', index_col=0)
     accuracy_table_from_CI = pd.read_csv(input_path + '/accuracy_table_from_CI.csv', index_col=0)
     MCC_table_from_CI = pd.read_csv(input_path + '/MCC_table_from_CI.csv', index_col=0)
 
     sensitivity_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/sensitivity_tables_per_sig_from_CI.json')
     specificity_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/specificity_tables_per_sig_from_CI.json')
+    sensitivity_CI_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/sensitivity_CI_tables_per_sig_from_CI.json')
+    specificity_CI_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/specificity_CI_tables_per_sig_from_CI.json')
     precision_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/precision_tables_per_sig_from_CI.json')
     accuracy_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/accuracy_tables_per_sig_from_CI.json')
     MCC_tables_per_sig_from_CI = read_data_from_JSON(input_path + '/MCC_tables_per_sig_from_CI.json')
@@ -261,20 +279,20 @@ if __name__ == '__main__':
     # assume a single strong threshold to plot more readable line plots
     if len(strong_thresholds)==1:
         # from CIs
-        all_metric_dataframes = [sensitivity_table_from_CI.rename(columns={str(strong_thresholds[0]): "Sensitivity"}), specificity_table_from_CI.rename(columns={str(strong_thresholds[0]): "Specificity"}), precision_table_from_CI.rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_table_from_CI.rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_table_from_CI.rename(columns={str(strong_thresholds[0]): "MCC"})]
+        all_metric_dataframes = [sensitivity_table_from_CI.rename(columns={str(strong_thresholds[0]): "Sensitivity"}), sensitivity_CI_table_from_CI.rename(columns={str(strong_thresholds[0]): "Sensitivity_CI"}), specificity_table_from_CI.rename(columns={str(strong_thresholds[0]): "Specificity"}), specificity_CI_table_from_CI.rename(columns={str(strong_thresholds[0]): "Specificity_CI"}), precision_table_from_CI.rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_table_from_CI.rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_table_from_CI.rename(columns={str(strong_thresholds[0]): "MCC"})]
         combined_metrics_dataframe = pd.DataFrame().join(all_metric_dataframes, how="outer")
         make_lineplot(combined_metrics_dataframe, 'Weak penalty', 'Value', title='Metrics from CIs (overall %s)' % (mutation_type), savepath=output_path + "/combined_metrics_from_CIs.pdf")
         # regular
-        all_metric_dataframes = [sensitivity_table.rename(columns={str(strong_thresholds[0]): "Sensitivity"}), specificity_table.rename(columns={str(strong_thresholds[0]): "Specificity"}), precision_table.rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_table.rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_table.rename(columns={str(strong_thresholds[0]): "MCC"})]
+        all_metric_dataframes = [sensitivity_table.rename(columns={str(strong_thresholds[0]): "Sensitivity"}), sensitivity_CI_table.rename(columns={str(strong_thresholds[0]): "Sensitivity_CI"}), specificity_table.rename(columns={str(strong_thresholds[0]): "Specificity"}), specificity_CI_table.rename(columns={str(strong_thresholds[0]): "Specificity_CI"}), precision_table.rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_table.rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_table.rename(columns={str(strong_thresholds[0]): "MCC"})]
         combined_metrics_dataframe = pd.DataFrame().join(all_metric_dataframes, how="outer")
         make_lineplot(combined_metrics_dataframe, 'Weak penalty', 'Value', title='Metrics (overall %s)' % mutation_type, savepath=output_path + "/combined_metrics.pdf")
         for signature in all_signatures:
             # from CIs
-            all_metric_dataframes = [sensitivity_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity"}), specificity_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Specificity"}), precision_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "MCC"})]
+            all_metric_dataframes = [sensitivity_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity"}), sensitivity_CI_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity_CI"}), specificity_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Specificity"}), specificity_CI_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Specificity_CI"}), precision_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_tables_per_sig_from_CI[signature].rename(columns={str(strong_thresholds[0]): "MCC"})]
             combined_metrics_dataframe = pd.DataFrame().join(all_metric_dataframes, how="outer")
             make_lineplot(combined_metrics_dataframe, 'Weak penalty', 'Value', title=signature + ' metrics from CIs', savepath=output_path + "/per_signature_from_CI/" + signature + "_metrics_from_CIs.pdf")
             # regular
-            all_metric_dataframes = [sensitivity_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity"}), specificity_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Specificity"}), precision_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "MCC"})]
+            all_metric_dataframes = [sensitivity_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity"}), sensitivity_CI_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Sensitivity_CI"}), specificity_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Specificity"}), specificity_CI_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Specificity_CI"}), precision_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Precision"}), accuracy_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "Accuracy"}), MCC_tables_per_sig[signature].rename(columns={str(strong_thresholds[0]): "MCC"})]
             combined_metrics_dataframe = pd.DataFrame().join(all_metric_dataframes, how="outer")
             make_lineplot(combined_metrics_dataframe, 'Weak penalty', 'Value', title=signature + ' metrics', savepath=output_path + "/per_signature/" + signature + "_metrics.pdf")
     else:

@@ -1,12 +1,12 @@
 ################## BASE IMAGE #####################
-FROM continuumio/miniconda3:4.8.2
+FROM continuumio/miniconda3:4.12.0
 
 ################## METADATA #######################
 
 LABEL base_image="continuumio/miniconda3"
 LABEL version="4.8.2"
 LABEL software="MSA"
-LABEL software.version="1.2"
+LABEL software.version="2.1"
 LABEL about.summary="Container image containing all requirements for MSA nextflow pipeline"
 LABEL about.home="https://gitlab.com/s.senkin/MSA/"
 LABEL about.documentation="https://gitlab.com/s.senkin/MSA/README.md"

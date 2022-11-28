@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from scipy.spatial import distance
+from statsmodels.stats.proportion import proportion_confint
 import matplotlib.pyplot as plt
 
 def is_tool(name):
@@ -190,9 +191,9 @@ def calculate_similarity(first_sample, second_sample, metric='Cosine', normalise
 
     return similarity
 
-def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples = None):
+def calculate_confusion_matrix(signatures, reco_table, truth_table, number_of_samples = None):
     """
-    Calculate various statistical scores.
+    Calculate confusion matrix
 
     Parameters:
     ----------
@@ -210,9 +211,7 @@ def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples
 
     Returns:
     -------
-    sensitivity, specificity, precision, accuracy, F1, MCC: list of doubles
-    List of various scores (see e.g. https://en.wikipedia.org/wiki/Confusion_matrix for info)
-    MCC stands for Matthews correlation coefficient.
+    true_positives, true_negatives, false_positives, false_negatives: list of doubles
     -------
     """
     true_positives = true_negatives = false_positives = false_negatives = 0
@@ -243,10 +242,42 @@ def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples
             else:
                 raise ValueError(
                     "Invalid signature attribution values -- please check the tables")
+    
+    return true_positives, true_negatives, false_positives, false_negatives
+
+def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples = None):
+    """
+    Calculate various statistical scores.
+
+    Parameters:
+    ----------
+    signatures: list
+        List of strings with signature names.
+        Should be available in input reco and truth tables as columns.
+    reco_table: pandas dataframe
+        Dataframe containing the signature attribution table for a set of samples
+    truth_table: pandas dataframe
+        Dataframe containing the true signature activities (known from simulations)
+        for the same set of samples (order has to be the same)
+    number_of_samples: int or None
+        If provided as an int, cap the number of samples by this number.
+        Otherwise, all provided samples are used
+
+    Returns:
+    -------
+    sensitivity, specificity, precision, accuracy, F1, MCC: list of doubles
+    List of various scores (see e.g. https://en.wikipedia.org/wiki/Confusion_matrix for info)
+    MCC stands for Matthews correlation coefficient.
+    -------
+    """
+    
+    true_positives, true_negatives, false_positives, false_negatives = calculate_confusion_matrix(signatures, reco_table, truth_table, number_of_samples)
+    
     sensitivity = np.float64(true_positives) / (true_positives + false_negatives)
     specificity = np.float64(true_negatives) / (true_negatives + false_positives)
     precision = np.float64(true_positives) / (true_positives + false_positives)
 
+    # # verbose info
     # print("Missed sigs mean/median/stdev/max:",np.mean(false_negatives_signatures),np.median(false_negatives_signatures),np.std(false_negatives_signatures),np.max(false_negatives_signatures))
     # plot_array_as_histogram([true_positives_signatures, false_positives_signatures, false_negatives_signatures], ['True positives', 'False positives', 'False negatives'], title = 'Signature attribution distributions', savepath="distributions.pdf")
 
@@ -256,6 +287,72 @@ def calculate_stat_scores(signatures, reco_table, truth_table, number_of_samples
             * (true_positives + false_negatives) * (true_negatives + false_positives) * (true_negatives + false_negatives))
 
     return sensitivity, specificity, precision, accuracy, F1, MCC
+
+def calculate_sensitivity_CI(signatures, reco_table, truth_table, number_of_samples = None, CI_method = 'beta'):
+    """
+    Calculate confidence interval on sensitivity as a binomial proportion
+
+    Parameters:
+    ----------
+    signatures: list
+        List of strings with signature names.
+        Should be available in input reco and truth tables as columns.
+    reco_table: pandas dataframe
+        Dataframe containing the signature attribution table for a set of samples
+    truth_table: pandas dataframe
+        Dataframe containing the true signature activities (known from simulations)
+        for the same set of samples (order has to be the same)
+    number_of_samples: int or None
+        If provided as an int, cap the number of samples by this number.
+        Otherwise, all provided samples are used
+    CI_method: string
+        default: 'beta' (Clopper-Pearson) method to use for confidence interval in proportion_confint funciton.
+        Supported methods: https://www.statsmodels.org/dev/generated/statsmodels.stats.proportion.proportion_confint.html
+
+    Returns:
+    -------
+    sensitivity_CI: confidence interval as a list of doubles
+    -------
+    """
+    true_positives, _, _, false_negatives = calculate_confusion_matrix(signatures, reco_table, truth_table, number_of_samples)
+
+    # calculate CIs on sensitivity and specificity
+    sensitivity_CI = proportion_confint(true_positives, true_positives + false_negatives, alpha=0.05, method=CI_method)
+
+    return sensitivity_CI
+
+def calculate_specificity_CI(signatures, reco_table, truth_table, number_of_samples = None, CI_method = 'beta'):
+    """
+    Calculate confidence interval on specificity as a binomial proportion
+
+    Parameters:
+    ----------
+    signatures: list
+        List of strings with signature names.
+        Should be available in input reco and truth tables as columns.
+    reco_table: pandas dataframe
+        Dataframe containing the signature attribution table for a set of samples
+    truth_table: pandas dataframe
+        Dataframe containing the true signature activities (known from simulations)
+        for the same set of samples (order has to be the same)
+    number_of_samples: int or None
+        If provided as an int, cap the number of samples by this number.
+        Otherwise, all provided samples are used
+    CI_method: string
+        default: 'beta' (Clopper-Pearson) method to use for confidence interval in proportion_confint funciton.
+        Supported methods: https://www.statsmodels.org/dev/generated/statsmodels.stats.proportion.proportion_confint.html
+
+    Returns:
+    -------
+    specificity_CI: confidence interval as a list of doubles
+    -------
+    """
+    _, true_negatives, false_positives, _ = calculate_confusion_matrix(signatures, reco_table, truth_table, number_of_samples)
+
+    # calculate CIs on specificity
+    specificity_CI = proportion_confint(true_negatives, true_negatives + false_positives, alpha=0.05, method=CI_method)
+
+    return specificity_CI
 
 def clean_up_labels(signature, category, mutation_type='SBS'):
     # clean up labels for nicer plots
