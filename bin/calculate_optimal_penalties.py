@@ -292,37 +292,37 @@ if __name__ == '__main__':
             sensitivity_CI_from_CI_per_sig = read_data_from_JSON(input_attributions_folder + '/truth_studies/sensitivity_CI_from_CI_per_sig_' + mutation_type + '.json')
             specificity_CI_from_CI_per_sig = read_data_from_JSON(input_attributions_folder + '/truth_studies/specificity_CI_from_CI_per_sig_' + mutation_type + '.json')
 
-            sensitivity_table_from_CI.loc[weak_threshold, strong_threshold] = stat_scores_from_CI_tables['Sensitivity'][0]
-            specificity_table_from_CI.loc[weak_threshold, strong_threshold] = stat_scores_from_CI_tables['Specificity'][0]
-            sensitivity_CI_table_from_CI.loc[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_from_CI_tables['lower_CL'][0]) + ', ' + str(sensitivity_CI_from_CI_tables['upper_CL'][0]) + ']'
-            specificity_CI_table_from_CI.loc[weak_threshold, strong_threshold] = '[' + str(specificity_CI_from_CI_tables['lower_CL'][0]) + ', ' + str(specificity_CI_from_CI_tables['upper_CL'][0]) + ']'
-            precision_table_from_CI.loc[weak_threshold, strong_threshold]   = stat_scores_from_CI_tables['Precision'][0]
-            accuracy_table_from_CI.loc[weak_threshold, strong_threshold]    = stat_scores_from_CI_tables['Accuracy'][0]
-            MCC_table_from_CI.loc[weak_threshold, strong_threshold]         = stat_scores_from_CI_tables['MCC'][0]
+            sensitivity_table_from_CI.at[weak_threshold, strong_threshold] = stat_scores_from_CI_tables['Sensitivity'][0]
+            specificity_table_from_CI.at[weak_threshold, strong_threshold] = stat_scores_from_CI_tables['Specificity'][0]
+            sensitivity_CI_table_from_CI.at[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_from_CI_tables['lower_CL'][0]) + ', ' + str(sensitivity_CI_from_CI_tables['upper_CL'][0]) + ']'
+            specificity_CI_table_from_CI.at[weak_threshold, strong_threshold] = '[' + str(specificity_CI_from_CI_tables['lower_CL'][0]) + ', ' + str(specificity_CI_from_CI_tables['upper_CL'][0]) + ']'
+            precision_table_from_CI.at[weak_threshold, strong_threshold]   = stat_scores_from_CI_tables['Precision'][0]
+            accuracy_table_from_CI.at[weak_threshold, strong_threshold]    = stat_scores_from_CI_tables['Accuracy'][0]
+            MCC_table_from_CI.at[weak_threshold, strong_threshold]         = stat_scores_from_CI_tables['MCC'][0]
 
-            sensitivity_table.loc[weak_threshold, strong_threshold] = stat_scores_tables['Sensitivity'][0]
-            specificity_table.loc[weak_threshold, strong_threshold] = stat_scores_tables['Specificity'][0]
-            sensitivity_CI_table.loc[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_tables['lower_CL'][0]) + ', ' + str(sensitivity_CI_tables['upper_CL'][0]) + ']'
-            specificity_CI_table.loc[weak_threshold, strong_threshold] = '[' + str(specificity_CI_tables['lower_CL'][0]) + ', ' + str(specificity_CI_tables['upper_CL'][0]) + ']'
-            precision_table.loc[weak_threshold, strong_threshold]   = stat_scores_tables['Precision'][0]
-            accuracy_table.loc[weak_threshold, strong_threshold]    = stat_scores_tables['Accuracy'][0]
-            MCC_table.loc[weak_threshold, strong_threshold]         = stat_scores_tables['MCC'][0]
+            sensitivity_table.at[weak_threshold, strong_threshold] = stat_scores_tables['Sensitivity'][0]
+            specificity_table.at[weak_threshold, strong_threshold] = stat_scores_tables['Specificity'][0]
+            sensitivity_CI_table.at[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_tables['lower_CL'][0]) + ', ' + str(sensitivity_CI_tables['upper_CL'][0]) + ']'
+            specificity_CI_table.at[weak_threshold, strong_threshold] = '[' + str(specificity_CI_tables['lower_CL'][0]) + ', ' + str(specificity_CI_tables['upper_CL'][0]) + ']'
+            precision_table.at[weak_threshold, strong_threshold]   = stat_scores_tables['Precision'][0]
+            accuracy_table.at[weak_threshold, strong_threshold]    = stat_scores_tables['Accuracy'][0]
+            MCC_table.at[weak_threshold, strong_threshold]         = stat_scores_tables['MCC'][0]
 
             for signature in all_signatures:
-                sensitivity_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Sensitivity'][0]
-                specificity_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Specificity'][0]
-                sensitivity_CI_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_from_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(sensitivity_CI_from_CI_per_sig[signature]['upper_CL'][0]) + ']'
-                specificity_CI_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = '[' + str(specificity_CI_from_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(specificity_CI_from_CI_per_sig[signature]['upper_CL'][0]) + ']'
-                precision_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Precision'][0]
-                accuracy_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Accuracy'][0]
-                MCC_tables_per_sig_from_CI[signature].loc[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['MCC'][0]
-                sensitivity_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Sensitivity'][0]
-                specificity_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Specificity'][0]
-                sensitivity_CI_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(sensitivity_CI_per_sig[signature]['upper_CL'][0]) + ']'
-                specificity_CI_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = '[' + str(specificity_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(specificity_CI_per_sig[signature]['upper_CL'][0]) + ']'
-                precision_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Precision'][0]
-                accuracy_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Accuracy'][0]
-                MCC_tables_per_sig[signature].loc[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['MCC'][0]
+                sensitivity_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Sensitivity'][0]
+                specificity_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Specificity'][0]
+                sensitivity_CI_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_from_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(sensitivity_CI_from_CI_per_sig[signature]['upper_CL'][0]) + ']'
+                specificity_CI_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = '[' + str(specificity_CI_from_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(specificity_CI_from_CI_per_sig[signature]['upper_CL'][0]) + ']'
+                precision_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Precision'][0]
+                accuracy_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['Accuracy'][0]
+                MCC_tables_per_sig_from_CI[signature].at[weak_threshold, strong_threshold] = stat_scores_from_CI_per_sig[signature]['MCC'][0]
+                sensitivity_tables_per_sig[signature].at[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Sensitivity'][0]
+                specificity_tables_per_sig[signature].at[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Specificity'][0]
+                sensitivity_CI_tables_per_sig[signature].at[weak_threshold, strong_threshold] = '[' + str(sensitivity_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(sensitivity_CI_per_sig[signature]['upper_CL'][0]) + ']'
+                specificity_CI_tables_per_sig[signature].at[weak_threshold, strong_threshold] = '[' + str(specificity_CI_per_sig[signature]['lower_CL'][0]) + ', ' + str(specificity_CI_per_sig[signature]['upper_CL'][0]) + ']'
+                precision_tables_per_sig[signature].at[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Precision'][0]
+                accuracy_tables_per_sig[signature].at[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['Accuracy'][0]
+                MCC_tables_per_sig[signature].at[weak_threshold, strong_threshold] = stat_scores_per_sig[signature]['MCC'][0]
 
 
     # similarity metrics with simple approach
@@ -346,8 +346,8 @@ if __name__ == '__main__':
     # penalties calculation and filling dataframe
     for signature in all_signatures:
         optimal_weak_penalty, optimal_strong_penalty = calculate_optimal_penalty(sensitivity_tables_per_sig_to_use[signature], specificity_tables_per_sig_to_use[signature], label = signature, metric_to_prioritise=metric_to_prioritise, threshold=metric_threshold)
-        optimal_penalties.loc[signature, 'optimal_weak_penalty'] = optimal_weak_penalty
-        optimal_penalties.loc[signature, 'optimal_strong_penalty'] = optimal_strong_penalty
+        optimal_penalties.at[signature, 'optimal_weak_penalty'] = optimal_weak_penalty
+        optimal_penalties.at[signature, 'optimal_strong_penalty'] = optimal_strong_penalty
     average_optimal_weak_penalty, average_optimal_strong_penalty = calculate_optimal_penalty(sensitivity_table_to_use, specificity_table_to_use, label = 'average', metric_to_prioritise=metric_to_prioritise, threshold=metric_threshold)
     if signatures_to_prioritise:
         # use with care for multiple signatures
@@ -360,15 +360,32 @@ if __name__ == '__main__':
         if average:
             optimal_weak_penalty = average_optimal_weak_penalty
             optimal_strong_penalty = average_optimal_strong_penalty
-    optimal_penalties.loc['average', 'optimal_weak_penalty'] = average_optimal_weak_penalty
-    optimal_penalties.loc['average', 'optimal_strong_penalty'] = average_optimal_strong_penalty
-    optimal_penalties.loc['selected', 'optimal_weak_penalty'] = optimal_weak_penalty
-    optimal_penalties.loc['selected', 'optimal_strong_penalty'] = optimal_strong_penalty
+    optimal_penalties.at['average', 'optimal_weak_penalty'] = average_optimal_weak_penalty
+    optimal_penalties.at['average', 'optimal_strong_penalty'] = average_optimal_strong_penalty
+    optimal_penalties.at['selected', 'optimal_weak_penalty'] = optimal_weak_penalty
+    optimal_penalties.at['selected', 'optimal_strong_penalty'] = optimal_strong_penalty
     weak_penalty_file.write("%s\n" % optimal_weak_penalty)
     strong_penalty_file.write("%s\n" % optimal_strong_penalty)
 
+    # summarising metrics for selected penalties
+    selected_penalty_metrics = pd.DataFrame(dtype=np.float64, index=all_signatures, columns = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'MCC'])
+    selected_penalty_metrics_from_CI = pd.DataFrame(dtype=np.float64, index=all_signatures, columns = ['Sensitivity', 'Specificity', 'Precision', 'Accuracy', 'MCC'])
+    for signature in all_signatures:
+        selected_penalty_metrics.at[signature, 'Sensitivity'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else sensitivity_tables_per_sig[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics.at[signature, 'Specificity'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else specificity_tables_per_sig[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics.at[signature, 'Precision'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else precision_tables_per_sig[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics.at[signature, 'Accuracy'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else accuracy_tables_per_sig[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics.at[signature, 'MCC'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else MCC_tables_per_sig[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics_from_CI.at[signature, 'Sensitivity'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else sensitivity_tables_per_sig_from_CI[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics_from_CI.at[signature, 'Specificity'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else specificity_tables_per_sig_from_CI[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics_from_CI.at[signature, 'Precision'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else precision_tables_per_sig_from_CI[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics_from_CI.at[signature, 'Accuracy'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else accuracy_tables_per_sig_from_CI[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+        selected_penalty_metrics_from_CI.at[signature, 'MCC'] = np.nan if (optimal_weak_penalty!=optimal_weak_penalty or optimal_strong_penalty!=optimal_strong_penalty) else MCC_tables_per_sig_from_CI[signature].at[optimal_weak_penalty, optimal_strong_penalty]
+
     # write dictionaries and dataframes to files
     optimal_penalties.to_csv(output_path + '/optimal_penalties.csv', na_rep='NAN')
+    selected_penalty_metrics.to_csv(output_path + '/selected_penalty_metrics.csv', na_rep='NAN')
+    selected_penalty_metrics_from_CI.to_csv(output_path + '/selected_penalty_metrics_from_CI.csv', na_rep='NAN')
     sensitivity_table.to_csv(output_path + '/sensitivity_table.csv')
     specificity_table.to_csv(output_path + '/specificity_table.csv')
     sensitivity_CI_table.to_csv(output_path + '/sensitivity_CI_table.csv')
