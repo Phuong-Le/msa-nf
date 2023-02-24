@@ -40,7 +40,7 @@ params.number_of_simulated_samples = -1 // number of simulations to run (-1 mean
 params.add_noise = true // add noise in simulations (recommended)
 params.noise_type = "gaussian" // set the type of noise in simulations: gaussian, poisson or negative_binomial (Gaussian by default)
 params.noise_stdev = 10 // set standard deviation of gaussian noise, in percentage of sample mutation burden (10 percent by default)
-params.zero_inflation_threshold = 0.01 // set the relative threshold below which all simulated signature activities are set to zero (0.01 by default)
+params.zero_inflation_threshold = 0.05 // set the relative threshold below which all simulated signature activities are set to zero (0.01 by default)
 
 // optimisation flag and parameters
 params.run_only_optimisation = false // set to true if only optimisation is required, without final attributions
@@ -108,7 +108,7 @@ log.info '             | |\\/| |\\___ \\ / /\\ \\                 '
 log.info '             | |  | |____) / ____ \\                    '
 log.info '             |_|  |_|_____/_/    \\_\\                  '
 log.info '                                                        '
-log.info '          MUTATIONAL SIGNATURE ANALYSIS v2.1            '
+log.info '          MUTATIONAL SIGNATURE ANALYSIS v2.2            '
 log.info '--------------------------------------------------------'
 log.info 'Copyright (C) Sergey Senkin'
 log.info 'This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE'
