@@ -1,3 +1,5 @@
+# Imported and modified from https://gitlab.com/s.senkin/MSA
+
 # Mutational Signature Attribution pipeline
 
 ![logo](MSA.png)
