@@ -44,7 +44,7 @@ params.zero_inflation_threshold = 0.05 // set the relative threshold below which
 
 // optimisation flag and parameters
 params.run_only_optimisation = false // set to true if only optimisation is required, without final attributions
-params.optimisation_NNLS_output_path = "$baseDir/outputs_optimisation"
+params.optimisation_NNLS_output_path = params.output_path + "/outputs_optimisation" 
 params.optimisation_plots_output_path = params.plots_output_path + "/optimisation_plots"
 params.optimised = true // if set to false, optimisation will run but not be used in final attributions
 params.optimisation_strategy = "removal" // optimisation strategy (removal, addition or add-remove)
