@@ -13,3 +13,4 @@ trace.txt*
 report.html*
 timeline.html*
 .nextflow*
+singularity
